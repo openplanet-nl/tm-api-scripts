@@ -1,0 +1,99 @@
+/**
+ *  Component : ServerAPI
+ */
+#Const Version    "2020-04-01"
+#Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/ServerAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "lib-server-api" //< Component name
+#Const P "LibServerAPI_" //< Prefix use to differentiate functions/variables in the script
+
+#Const C_API_Server "/api/token/server"
+
+#Const C_Route_GetPlayerServerAccounts "/player-server/account"
+
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	return MV::Component(
+C_Name,
+"""
+""",
+"""
+#Const {{{P}}}C_API_Server {{{dump(C_API_Server)}}}
+
+#Const {{{P}}}C_Route_GetPlayerServerAccounts {{{dump(C_Route_GetPlayerServerAccounts)}}}
+
+#Const {{{P}}}C_Headers {{{dump(C_Headers)}}}
+
+#Struct {{{P}}}K_HttpPlayerServerAccount {
+	Text accountId;
+	Text login;
+	Boolean alreadyUsed;
+	Integer clubRoomId;
+	Text clubRoomName;
+}
+
+#Struct {{{P}}}K_HttpResponseGetPlayerServerAccounts {
+	{{{P}}}K_HttpPlayerServerAccount[] playerServerAccount;
+	Integer itemCount;
+}
+
+#Struct {{{P}}}K_PlayerServerAccount {
+	Text AccountId;
+	Text Login;
+	Boolean AlreadyUsed;
+	Integer ClubRoomId;
+	Text ClubRoomName;
+}
+""",
+"""
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the server accounts of the connected player
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetPlayerServerAccounts() {
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Server^{{{P}}}C_Route_GetPlayerServerAccounts, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+{{{P}}}K_PlayerServerAccount[] {{{P}}}GetResponseFromGetPlayerServerAccounts({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpResponseGetPlayerServerAccounts HttpResponse;
+	HttpResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{P}}}K_PlayerServerAccount[] PlayerServerAccountList;
+	foreach (HttpServerAccount in HttpResponse.playerServerAccount) {
+		PlayerServerAccountList.add({{{P}}}K_PlayerServerAccount {
+			AccountId = HttpServerAccount.accountId,
+			Login = HttpServerAccount.login,
+			AlreadyUsed = HttpServerAccount.alreadyUsed,
+			ClubRoomId = HttpServerAccount.clubRoomId,
+			ClubRoomName = HttpServerAccount.clubRoomName
+		});
+	}
+
+	return PlayerServerAccountList;
+}
+""",
+[Http::Component(), Config::Component()],
+[]
+);
+}

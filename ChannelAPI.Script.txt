@@ -1,0 +1,285 @@
+/**
+ *  Component : ChannelAPI
+ */
+#Const Version    "2020-12-21"
+#Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/ChannelAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/CommonLibs/Common/HttpServerAuthorizationHeader.Script.txt" as HttpServerAuthorizationHeader
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "lib-channel-api" //< Component name
+#Const P "LibChannelAPI_" //< Prefix use to differentiate functions/variables in the script
+
+#Const C_API_Channel "/api/token/channel"
+
+#Const C_RouteParameter_ChannelUid "ChannelUid"
+
+#Const C_Route_PostJoinLink "/:ChannelUid/join"
+#Const C_Route_GetChannelInfo "/:ChannelUid"
+#Const C_Route_GetChannelGrid "/:ChannelUid/grid"
+
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+
+#Struct K_JoinLink {
+	Text joinLink;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a join link of a channel
+ *
+ *	@param	_ChannelUid								The Uid of the channel
+ *
+ *	@return														The request
+*/
+Http::LibCommonHttp_K_Request GetJoinLink(Text _ChannelUid) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostJoinLink, [C_RouteParameter_ChannelUid => _ChannelUid]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Channel^Route, "", HttpServerAuthorizationHeader::GetHeadersWithLiveAuthorization(C_Headers));
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Text GetResponseFromGetJoinLink(Http::LibCommonHttp_K_Request _Request) {
+	declare K_JoinLink JoinLinkResponse;
+	JoinLinkResponse.fromjson(Http::GetResult(_Request));
+	return JoinLinkResponse.joinLink;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	return MV::Component(
+C_Name,
+"""
+""",
+"""
+#Const {{{P}}}C_API_Channel {{{dump(C_API_Channel)}}}
+
+#Const {{{P}}}C_RouteParameter_ChannelUid {{{dump(C_RouteParameter_ChannelUid)}}}
+
+#Const {{{P}}}C_Route_PostJoinLink {{{dump(C_Route_PostJoinLink)}}}
+#Const {{{P}}}C_Route_GetChannelInfo {{{dump(C_Route_GetChannelInfo)}}}
+#Const {{{P}}}C_Route_GetChannelGrid {{{dump(C_Route_GetChannelGrid)}}}
+
+#Const {{{P}}}C_Headers {{{dump(C_Headers)}}}
+
+#Struct {{{P}}}K_JoinLink {
+	Text joinLink;
+}
+
+#Struct {{{P}}}K_ScriptSettings {
+	Text key;
+	Text value;
+	Text type;
+}
+
+#Struct {{{P}}}K_HttpChannelProgram {
+	Integer startTimestamp;
+	Integer endTimestamp;
+	Text[] maps;
+	Text name;
+	Text currentMap;
+	Integer relativeStart;
+	Integer relativeEnd;
+	Text mediaUrl;
+}
+
+#Struct {{{P}}}K_HttpChannelProgramGrid {
+	Integer id;
+	Text name;
+	Integer clubId;
+	Integer roomId;
+	Integer state;
+	Text dataPackUid;
+	Text script;
+	Text[] maps;
+	Integer maxPlayersPerServer;
+	Text mediaUrl;
+	Boolean channel;
+}
+
+#Struct {{{P}}}K_HttpCurrentAndNextChannelProgram {
+	Text uid;
+	Text name;
+	Integer playerCount;
+	{{{P}}}K_HttpChannelProgram currentTimeSlot;
+	{{{P}}}K_HttpChannelProgram nextTimeSlot;
+}
+
+#Struct {{{P}}}K_HttpChannelGridHours {
+	Integer hour;
+	{{{P}}}K_HttpChannelProgramGrid program;
+}
+
+#Struct {{{P}}}K_HttpChannelGridDays {
+	Integer day;
+	{{{P}}}K_HttpChannelGridHours[] hours;
+}
+
+#Struct {{{P}}}K_HttpChannelGrid {
+	{{{P}}}K_HttpChannelGridDays[] days; 
+}
+
+#Struct {{{P}}}K_ChannelProgram {
+	Integer Id; //< Only used by the program grid
+	Integer StartTimestamp;
+	Integer EndTimestamp;
+	Text[] Maps;
+	Text Name;
+	Text CurrentMap;
+	Integer RelativeStart;
+	Integer RelativeEnd;
+	Text MediaUrl;
+}
+
+#Struct {{{P}}}K_CurrentAndNextChannelProgram {
+	Text Uid;
+	Text Name;
+	Integer PlayerCount;
+	{{{P}}}K_ChannelProgram CurrentTimeSlot;
+	{{{P}}}K_ChannelProgram NextTimeSlot;
+}
+
+#Struct {{{P}}}K_ChannelGridHours {
+	Integer Hour;
+	{{{P}}}K_ChannelProgram Program;
+}
+
+#Struct {{{P}}}K_ChannelGridDays {
+	Integer Day;
+	{{{P}}}K_ChannelGridHours[] Hours;
+}
+
+#Struct {{{P}}}K_ChannelGrid {
+	{{{P}}}K_ChannelGridDays[] Days; 
+}
+""",
+"""
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a join link of a channel
+ *
+ *	@param	_ChannelUid								The Uid of the channel
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetJoinLink(Text _ChannelUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_PostJoinLink, [{{{P}}}C_RouteParameter_ChannelUid => _ChannelUid]);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Channel^Route, "", {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Text {{{P}}}GetResponseFromGetJoinLink({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_JoinLink JoinLinkResponse;
+	JoinLinkResponse.fromjson({{{Http::P}}}GetResult(_Request));
+	return JoinLinkResponse.joinLink;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get information on a channel
+ *
+ *	@param	_ChannelUid								The Uid of the channel
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetChannelInfo(Text _ChannelUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetChannelInfo, [{{{P}}}C_RouteParameter_ChannelUid => _ChannelUid]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Channel^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+{{{P}}}K_CurrentAndNextChannelProgram {{{P}}}GetResponseFromGetChannelInfo({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpCurrentAndNextChannelProgram HttpChannelInfoResponse;
+	HttpChannelInfoResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{P}}}K_CurrentAndNextChannelProgram {
+		Uid = HttpChannelInfoResponse.uid,
+		Name = HttpChannelInfoResponse.name,
+		PlayerCount = HttpChannelInfoResponse.playerCount,
+		CurrentTimeSlot = {{{P}}}K_ChannelProgram {
+			StartTimestamp = HttpChannelInfoResponse.currentTimeSlot.startTimestamp,
+			EndTimestamp = HttpChannelInfoResponse.currentTimeSlot.endTimestamp,
+			Maps = HttpChannelInfoResponse.currentTimeSlot.maps,
+			Name = HttpChannelInfoResponse.currentTimeSlot.name,
+			CurrentMap = HttpChannelInfoResponse.currentTimeSlot.currentMap,
+			RelativeStart = HttpChannelInfoResponse.currentTimeSlot.relativeStart,
+			RelativeEnd = HttpChannelInfoResponse.currentTimeSlot.relativeEnd,
+			MediaUrl = HttpChannelInfoResponse.currentTimeSlot.mediaUrl
+		},
+		NextTimeSlot = {{{P}}}K_ChannelProgram {
+			StartTimestamp = HttpChannelInfoResponse.nextTimeSlot.startTimestamp,
+			EndTimestamp = HttpChannelInfoResponse.nextTimeSlot.endTimestamp,
+			Maps = HttpChannelInfoResponse.nextTimeSlot.maps,
+			Name = HttpChannelInfoResponse.nextTimeSlot.name,
+			CurrentMap = HttpChannelInfoResponse.nextTimeSlot.currentMap,
+			RelativeStart = HttpChannelInfoResponse.nextTimeSlot.relativeStart,
+			RelativeEnd = HttpChannelInfoResponse.nextTimeSlot.relativeEnd,
+			MediaUrl = HttpChannelInfoResponse.nextTimeSlot.mediaUrl
+		}
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the grid of a channel
+ *
+ *	@param	_ChannelUid								The Uid of the channel
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetChannelGrid(Text _ChannelUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetChannelGrid, [{{{P}}}C_RouteParameter_ChannelUid => _ChannelUid]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Channel^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+{{{P}}}K_ChannelGrid {{{P}}}GetResponseFromGetChannelGrid({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpChannelGrid HttpChannelGridResponse;
+	HttpChannelGridResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{P}}}K_ChannelGridDays[] ChannelGridDays;
+	foreach (HttpChannelGridDays in HttpChannelGridResponse.days) {
+		declare {{{P}}}K_ChannelGridHours[] ChannelGridHours;
+		foreach (HttpChannelGridHours in HttpChannelGridDays.hours) {
+			ChannelGridHours.add({{{P}}}K_ChannelGridHours {
+				Hour = HttpChannelGridHours.hour,
+				Program = {{{P}}}K_ChannelProgram {
+					Id = HttpChannelGridHours.program.id,
+					Maps = HttpChannelGridHours.program.maps,
+					Name = HttpChannelGridHours.program.name,
+					MediaUrl = HttpChannelGridHours.program.mediaUrl
+				}
+			});
+		}
+
+		ChannelGridDays.add({{{P}}}K_ChannelGridDays {
+			Day = HttpChannelGridDays.day,
+			Hours = ChannelGridHours
+		});
+	}
+
+	return {{{P}}}K_ChannelGrid{
+		Days = ChannelGridDays
+	};
+}
+""",
+[
+	Http::Component(),
+	Config::Component()
+],
+[]
+);
+}

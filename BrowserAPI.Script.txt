@@ -1,0 +1,3499 @@
+/**
+ *	API for Browsers
+ */
+#Const Version		"2020-11-25"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/CommonLibs/Common/EnvironmentInfo.Script.txt" as EnvironmentInfo
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/CampaignStore.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/ClubStore.Script.txt" as ClubStore
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Scroll.Script.txt" as Scroll
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Quad9.Script.txt" as Quad9
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/RBAC.Script.txt" as RBAC
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore.Script.txt" as UserStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-browser-api" //< Component name
+#Const P "ComponentBrowserAPI_" //< Prefix use to differentiate functions/variables in the script
+
+#Const C_Class_Browser "Class_Browser"
+#Const C_NavGroupName "navgroup-component-browser"
+
+#Const C_Class_Header "ComponentBrowserAPI_Class_Header"
+#Const C_Class_Body "ComponentBrowserAPI_Class_Body"
+#Const C_Class_Footer "ComponentBrowserAPI_Class_Footer"
+
+#Const C_BrowserPopUpSize <299., 154.>
+#Const C_BrowserPopUpPosY -3.
+
+#Const C_BrowserType_None -1
+#Const C_BrowserType_PathNavigation 0
+#Const C_BrowserType_PathNavigationSmall 1
+#Const C_BrowserType_List 2
+
+#Const C_DelayBetweenRequest 1000 //< milliseconds
+
+#Const C_DataType_None -1
+#Const C_DataType_Image 0
+#Const C_DataType_Skin 1
+#Const C_DataType_Map 2
+#Const C_DataType_Replay 3
+#Const C_DataType_Campaign 4
+#Const C_DataType_MonthlyCampaign 5
+#Const C_DataType_Script 6
+#Const C_DataType_MatchSettings 7
+#Const C_DataType_Category 8
+#Const C_DataType_Club 9
+
+#Const C_TooltipPos_ScrollTop 0
+#Const C_TooltipPos_Footer 1
+
+#Const C_DataType_NameList [
+	//L16N Absence of name, there is no name
+	-1 => _("|DataType|None"),
+	//L16N 2D asset, drawing
+	0 => _("|DataType|Image"),
+	//L16N Customized 3D Vehicle Model
+	1 => _("|DataType|Skin"),
+	//L16N Track to race on
+	2 => _("|DataType|Map"),
+	//L16N Recording of a previous race performance
+	3 => _("|DataType|Replay"),
+	//L16N Bundle of tracks for solo play
+	4 => _("|DataType|Campaign"),
+	//L16N Server for online play
+	5 => _("|DataType|Room"),
+	//L16N Code for the software. Used to make game modes.
+	6 => _("|DataType|Script"),
+	//L16N All the settings realated to the match such as the warm-up duration or the number of rounds played
+	7 => _("|DataType|MatchSettings"),
+	//L16N A folder, also called a directory, is a special space used to store files, other folders...
+	8 => _("|DataType|Folder"),
+	//L16N Club is an in-game, private communitie where players can gather to discuss, drive, create, organize or participate to special events.
+	9 => _("|DataType|Club")
+]
+
+#Const C_Path_Base "Path_Base"
+#Const C_Path_Officials "Path_Officials"
+#Const C_Path_Quarterly "Path_Quarterly"
+#Const C_Path_Monthly "Path_Monthly"
+#Const C_Path_Clubs "Path_Clubs"
+#Const C_Path_ChosenClub "Path_ChosenClub"
+#Const C_Path_Local "Path_Local"
+#Const C_Path_Null "Path_Null"
+
+#Const C_Paths_Names [
+	//L16N Campaigns created by Nadeo
+	"Path_Officials" => _("|Campaign|Official"),
+	//L16N Every three months
+	"Path_Quarterly" => _("|Campaign|Quarterly"),
+	//L16N Every month
+	"Path_Monthly" => _("|Campaign|Monthly"),
+	//L16N Clubs are in-game, private communities where players can gather to discuss, drive, create, organize or participate to special events.
+	"Path_Clubs" => _("Clubs"),
+	//L16N Refers to all local play activities
+	"Path_Local" => _("|Menu|Local")
+]
+
+#Const C_TaskListState_None -1
+#Const C_TaskListState_IsProcessing 0
+#Const C_TaskListState_HasSucceeded 1
+#Const C_TaskListState_HasFailed 2
+#Const C_TaskListState_IsCanceled 3
+
+#Const C_EventType_UnFocusScroll 0
+#Const C_EventType_Select 1
+#Const C_EventType_Cancel 2
+#Const C_EventType_ReachLimit 3
+#Const C_EventType_Focus 4
+#Const C_EventType_CreateMap 5
+#Const C_EventType_ConfirmSelection 6
+#Const C_EventType_EditorSettings 7
+#Const C_EventType_MultiSelect 8
+
+//L16N Page to search for a skin
+#Const C_BrowserName_Skin _("Skin browser")
+//L16N Page to search for an image
+#Const C_BrowserName_Image _("Image browser")
+//L16N Page to search for a map
+#Const C_BrowserName_Map _("Maps")
+//L16N Storage for campaigns
+#Const C_BrowserName_Campaign _("Campaign library")
+//L16N Track name
+#Const C_Text_Name _("Name")
+//L16N Racing track
+#Const C_Text_Map _("Map")
+//L16N Number of track validated singular (1 or less)
+#Const C_Text_Validation _("Validation")
+//L16N Number of track validated plural (2 or more)
+#Const C_Text_Validations _("Validations")
+//L16N Lacking elements to be valid. %1, %2, %3, %4 will be the elements that are needed for validation. (eg. "Missing: Name Logo Track")
+#Const C_Text_Missing _("Missing: %1 %2 %3 %4")
+//L16N No elements 
+#Const C_Text_NoElements _("No suitable elements were found in this folder")
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	declare Integer ColumnsNb = 5;
+	declare Integer RowsNb = 5;
+	declare Integer ElementsPerPage = ColumnsNb * RowsNb;
+	declare Vec2 Size_BrowsersScrollWindow = <268. - Const::C_PageWidth_MarginX, 75.>;
+	declare Vec2 Size_BrowserMargin = <0., 0.>;
+	declare Vec2 Size_Browser = Scroll::GetElementSize(Size_BrowsersScrollWindow, Size_BrowserMargin, ColumnsNb, RowsNb);
+	declare Integer ElementsNb = Scroll::GetRequiredElementsNb(Size_BrowsersScrollWindow, Size_Browser, Size_BrowserMargin, ColumnsNb);
+
+	declare Vec2 Size_Header = <0., 0.>;
+	declare Vec2 Size_Footer = <0., 0.>;
+
+	declare Vec2 Pos_BrowserElementName = <Size_Browser.X * 0.5, Size_Browser.Y * -0.5>;
+
+	declare Text Ml_BrowsersMap = "";
+	for (I, 1, ElementsNb) {
+		Ml_BrowsersMap ^= """
+		<frameinstance
+			modelid="{{{P}}}framemodel-browser-map-element"
+			class="{{{Scroll::C_Class_Element}}}"
+			hidden="1"
+		/>""";
+	}
+
+	declare Integer ColumnsNbSmallMap = 5;
+	RowsNb = 5;
+	declare Vec2 Size_SmallMapBrowserMargin = <0., 0.>;
+	declare Integer SmallMapsPerPage = ColumnsNbSmallMap * RowsNb;
+	declare Size_SmallBrowserScrollWindow = <190., 66.>;
+	declare Vec2 Size_BrowserSmallMaps = Scroll::GetElementSize(Size_SmallBrowserScrollWindow, Size_SmallMapBrowserMargin, ColumnsNbSmallMap, RowsNb);
+	ElementsNb = Scroll::GetRequiredElementsNb(Size_SmallBrowserScrollWindow, Size_BrowserSmallMaps, Size_SmallMapBrowserMargin, ColumnsNbSmallMap);
+	
+	declare Vec2 Pos_BrowserElementName_SmallMaps = <Size_BrowserSmallMaps.X * 0.5, Size_BrowserSmallMaps.Y * -0.5>;
+
+	declare Text Ml_BrowsersSmallMap = "";
+	for (I, 1, ElementsNb) {
+		Ml_BrowsersSmallMap ^= """
+		<frameinstance
+			modelid="{{{P}}}framemodel-browser-small-map-element"
+			class="{{{Scroll::C_Class_Element}}}"
+			hidden="1"
+		/>""";
+	}
+
+	declare Integer ColumnsNbList = 1;
+	declare Integer RowsNbList = 7;
+	declare Integer ListsPerPage = ColumnsNbList * RowsNbList;
+	declare Vec2 Size_ListBrowserMargin = <0., 1.25>;
+	declare Size_ListBrowserScrollWindow = <270. - Const::C_PageWidth_MarginX, 65.>;
+	declare Vec2 Size_BrowserLists = Scroll::GetElementSize(Size_ListBrowserScrollWindow, Size_ListBrowserMargin, ColumnsNbList, RowsNbList);
+	ElementsNb = Scroll::GetRequiredElementsNb(Size_ListBrowserScrollWindow, Size_BrowserLists, Size_ListBrowserMargin, ColumnsNbList);
+	
+	declare Vec2 Pos_BrowserElementName_Lists = <Size_BrowserLists.X * 0.5, Size_BrowserLists.Y * -0.5>;
+
+	declare Text Ml_BrowsersList = "";
+	for (I, 1, ElementsNb) {
+		Ml_BrowsersList ^= """
+		<frameinstance
+			modelid="{{{P}}}framemodel-browser-list-element"
+			class="{{{Scroll::C_Class_Element}}}"
+			hidden="1"
+		/>""";
+	}
+
+	declare SizeX_ListMargin = 5.;
+	declare SizeX_ListGutter = 1.;
+	declare SizeX_ListCheck = 6.;
+
+	return MV::Component(
+C_Name,
+"""
+<stylesheet>
+	<style class="{{{P}}}image-base" halign="center" valign="center"/>
+	<style class="{{{P}}}text-base" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontSemiBold}}}" textsize="5" textcolor="FFF" textprefix="$i"/>
+</stylesheet>
+<framemodel id="{{{P}}}framemodel-options-element">
+	<quad
+		size="10.5 8"
+		opacity="0" scriptevents="1"
+		class="{{{Navigation::C_Class_ActivationZone}}} {{{P}}}image-base"
+		id="{{{P}}}options-zone"
+	/>
+	<quad size="8 8" z-index="1" class="{{{P}}}image-base" id="{{{P}}}quad-image" colorize="FFF"/>
+	<quad
+		size="10.5 8"
+		class="{{{Navigation::C_Class_ActivationZone}}} {{{P}}}image-base"
+		image="{{{Const::C_ImageUrl_ButtonBG_SortingIcons}}}" colorize="FFF"
+		id="{{{P}}}quad-bg" opacity="0"
+	/>
+</framemodel>
+<framemodel id="{{{P}}}framemodel-browser-list-element">
+	<quad
+		id="{{{P}}}quad-check" class="{{{P}}}image-base"
+		pos="{{{Size_BrowserLists.X - SizeX_ListMargin}}} {{{Pos_BrowserElementName_Lists.Y}}}"
+		z-index="2"
+		size="6.5 6.5"
+		colorize="{{{ColorPalette::C_Color_GreenFour}}}"
+		hidden="1"
+		image="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+	/>
+	<label id="{{{P}}}label-name"
+		size="{{{Size_BrowserLists.X-3.}}} {{{Size_BrowserLists.Y}}}"
+		pos="{{{SizeX_ListMargin}}} {{{Pos_BrowserElementName_Lists.Y-.5}}}"
+		z-index="2"
+		class="{{{P}}}text-base" halign="left" textprefix="$i"
+		textfont="{{{FontManager::C_GameFontSemiBold}}}"
+	/>
+	<quad id="{{{P}}}quad-image" class="{{{P}}}image-base"
+		size="{{{Size_BrowserLists.X-2.}}} {{{Size_BrowserLists.Y-2.}}}"
+		pos="{{{Pos_BrowserElementName_Lists.X}}} {{{Pos_BrowserElementName_Lists.Y}}}"
+		hidden="1" z-index="3" keepratio="Fit"
+	/>
+	<quad
+		size="{{{Size_BrowserLists.X}}} {{{Size_BrowserLists.Y}}}"
+		opacity="0" scriptevents="1"
+		class="{{{Scroll::C_Class_ActivationZone}}}"
+	/>
+	<quad id="{{{P}}}quad-focus" z-index="1" size="{{{Size_BrowserLists.X}}} {{{Size_BrowserLists.Y}}}"  image="{{{Const::C_ImageUrl_ButtonBG_Line}}}" colorize="{{{ColorPalette::C_Color_GreenFour}}}" hidden="1"/>
+	<quad id="{{{P}}}quad-bg" size="{{{Size_BrowserLists.X}}} {{{Size_BrowserLists.Y}}}" image="{{{Const::C_ImageUrl_ButtonBG_Line}}}" colorize="{{{ColorPalette::C_Color_GreenFour}}}"/>
+</framemodel>
+<framemodel id="{{{P}}}framemodel-browser-small-map-element">
+	<quad
+		id="{{{P}}}quad-check" class="{{{P}}}image-base"
+		pos="{{{Size_BrowserSmallMaps.X* 0.87}}} {{{Size_BrowserSmallMaps.Y * -0.25}}}"
+		z-index="2"
+		size="6 6"
+		colorize="{{{ColorPalette::C_Color_GreenFour}}}"
+		hidden="1"
+		image="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+	/>
+	<label id="{{{P}}}label-name"
+		size="{{{Size_BrowserSmallMaps.X-6.}}} {{{Size_BrowserSmallMaps.Y}}}"
+		pos="{{{Pos_BrowserElementName_SmallMaps.X-.25}}} {{{Pos_BrowserElementName_SmallMaps.Y}}}"
+		z-index="2"
+		class="{{{P}}}text-base" textcolor="000" textsize="2" textprefix="$i"
+		textfont="{{{FontManager::C_GameFontSemiBold}}}"
+	/>
+	<quad id="{{{P}}}quad-image" class="{{{P}}}image-base"
+		size="{{{Size_BrowserSmallMaps.X-2.}}} {{{Size_BrowserSmallMaps.Y-2.}}}"
+		pos="{{{Pos_BrowserElementName_SmallMaps.X}}} {{{Pos_BrowserElementName_SmallMaps.Y}}}"
+		hidden="1" z-index="3" keepratio="Fit"
+	/>
+	<quad
+		size="{{{Size_BrowserSmallMaps.X}}} {{{Size_BrowserSmallMaps.Y}}}"
+		opacity="0" scriptevents="1"
+		class="{{{Scroll::C_Class_ActivationZone}}}"
+	/>
+	<quad id="{{{P}}}quad-bg" class="{{{P}}}image-base"
+		size="{{{Size_BrowserSmallMaps.X-2.}}} {{{Size_BrowserSmallMaps.Y-2.}}}"
+		pos="{{{Pos_BrowserElementName_SmallMaps.X}}} {{{Pos_BrowserElementName_SmallMaps.Y}}}"
+		colorize="{{{ColorPalette::C_Color_GreenFour}}}"
+		image="{{{Const::C_ImageUrl_ButtonBG_Folder}}}"
+	/>
+	<quad id="{{{P}}}quad-focus" class="{{{P}}}image-base"
+		size="{{{Size_BrowserSmallMaps.X-2.}}} {{{Size_BrowserSmallMaps.Y-2.}}}"
+		pos="{{{Pos_BrowserElementName_SmallMaps.X}}} {{{Pos_BrowserElementName_SmallMaps.Y}}}"
+		colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_ButtonBG_Folder}}}"
+		z-index="1" hidden="1"
+	/>
+</framemodel>
+<framemodel id="{{{P}}}framemodel-browser-map-element">
+	<label id="{{{P}}}label-name"
+		size="{{{Size_Browser.X-7.5}}} {{{Size_Browser.Y}}}"
+		pos="{{{Pos_BrowserElementName.X-.25}}} {{{Pos_BrowserElementName.Y}}}"
+		z-index="2"
+		class="{{{P}}}text-base" textcolor="000" textsize="2.75" textprefix="$i"
+		textfont="{{{FontManager::C_GameFontSemiBold}}}"
+	/>
+	<quad id="{{{P}}}quad-image" class="{{{P}}}image-base"
+		size="{{{Size_Browser.X-10.}}} {{{Size_Browser.Y-4.}}}"
+		pos="{{{Pos_BrowserElementName.X-0.5}}} {{{Pos_BrowserElementName.Y}}}"
+		hidden="1" z-index="3" keepratio="Fit"
+	/>
+	<quad id="{{{P}}}quad-bg" class="{{{P}}}image-base"
+		size="{{{Size_Browser.X-2.}}} {{{Size_Browser.Y-2.}}}"
+		pos="{{{Pos_BrowserElementName.X}}} {{{Pos_BrowserElementName.Y}}}"
+		colorize="{{{ColorPalette::C_Color_GreenFour}}}"
+		image="{{{Const::C_ImageUrl_ButtonBG_Folder}}}" keepratio="Fit"
+	/>
+	<quad id="{{{P}}}quad-focus" class="{{{P}}}image-base"
+		size="{{{Size_Browser.X-2.}}} {{{Size_Browser.Y-2.}}}"
+		pos="{{{Pos_BrowserElementName.X}}} {{{Pos_BrowserElementName.Y}}}"
+		colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_ButtonBG_Folder}}}"
+		z-index="1" hidden="1" keepratio="Fit"
+	/>
+	<quad
+		size="{{{Size_Browser.X}}} {{{Size_Browser.Y}}}"
+		opacity="0" scriptevents="1"
+		class="{{{Scroll::C_Class_ActivationZone}}}"
+	/>
+</framemodel>
+<frame id="{{{P}}}frame-global">
+	<frameinstance modelid="{{{PopUpBackground::C_Name}}}" id="{{{P}}}frame-popup-background" data-pop-up-name="{{{C_Name}}}" z-index="-1" data-layout="{{{PopUpBackground::C_Layout_Type_Browser}}}"/>
+	<label id="{{{P}}}label-title" class="{{{P}}}text-base" halign="left" textsize="9" textcolor="FFF" pos="-116 61.5" textprefix="$t$i" textfont="{{{FontManager::C_GameFontBlack}}}" size="200 15" />
+	<label id="{{{P}}}label-sub-title" class="{{{P}}}text-base" halign="left" textsize="5" textcolor="FFF" pos="-116 53" textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" size="200 15" />
+	
+	<frame id="{{{P}}}frame-path-name" pos="0 40.75">
+		<frame id="{{{P}}}frame-parent-path"
+			z-index="2"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Header}}} {{{MenuSounds::C_Class}}}"
+			data-nav-inputs="select;cancel;down;right"
+			data-nav-targets="_;_;{{{P}}}button-list-multi-select-select-all;{{{P}}}frame-options-refresh"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{P}}}quad-bg"
+			pos="-112 0"
+			data-menusounds-selectsound="BrowserFolderBackward"
+		>
+			<quad image="{{{Const::C_ImageUrl_Icon_ParentPath}}}" size="7 7" z-index="3" class="{{{P}}}image-base" id="{{{P}}}quad-image" keepratio="Fit" colorize="FFF"/>
+			<quad id="{{{P}}}quad-bg"
+				image="{{{Const::C_ImageUrl_ButtonBG_SortingIcons}}}"
+				size="10.5 8" scriptevents="1"
+				class="{{{P}}}image-base {{{Navigation::C_Class_ActivationZone}}}"
+				colorize="FFF" opacity="0."
+			/>
+		</frame>
+		<label textcolor="000" class="{{{P}}}text-base" halign="left" pos="-95 -.5" size="145 10" z-index="2" id="{{{P}}}label-path" textsize="3" textprefix="$i" textfont="{{{FontManager::C_GameFontSemiBold}}}"/>
+		<quad id="{{{P}}}quad9-bg-search" z-index="1" pos="-96 0" size="152 8" image="{{{Const::C_ImageUrl_Background_Path}}}" colorize="FFF" valign="center" halign="left"/>
+	</frame>
+	<frame id="{{{P}}}frame-options" pos="66.5 40.75">
+		<frameinstance modelid="{{{P}}}framemodel-options-element" id="{{{P}}}frame-options-refresh"
+			pos="-168 0"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Header}}} {{{MenuSounds::C_Class}}}"
+			data-nav-inputs="select;cancel;right;left;down"
+			data-nav-targets="_;_;{{{P}}}frame-options-explorer;{{{P}}}frame-parent-path;{{{P}}}button-list-multi-select-select-all"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{P}}}options-zone"
+			data-menusounds-selectsound="SelectRefresh"
+		/>
+		<frameinstance modelid="{{{P}}}framemodel-options-element" id="{{{P}}}frame-options-order"
+			pos="69 0"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Header}}} {{{MenuSounds::C_Class}}}"
+			data-nav-inputs="select;cancel;left;down"
+			data-nav-targets="_;_;{{{P}}}frame-options-criterion;{{{P}}}button-list-multi-select-select-all"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{P}}}options-zone"
+			data-menusounds-selectsound="SelectBrowserSortOption"
+		/>
+		<frameinstance modelid="{{{P}}}framemodel-options-element" id="{{{P}}}frame-options-criterion"
+			pos="58 0"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Header}}} {{{MenuSounds::C_Class}}}"
+			data-nav-inputs="select;cancel;right;left;down"
+			data-nav-targets="_;_;{{{P}}}frame-options-order;{{{P}}}frame-options-flatten;{{{P}}}button-list-multi-select-select-all"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{P}}}options-zone"
+			data-menusounds-selectsound="SelectBrowserSortOption"
+		/>
+		<frameinstance modelid="{{{P}}}framemodel-options-element" id="{{{P}}}frame-options-flatten"
+			pos="47 0"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Header}}} {{{MenuSounds::C_Class}}}"
+			data-nav-inputs="select;cancel;right;left;down"
+			data-nav-targets="_;_;{{{P}}}frame-options-criterion;{{{P}}}frame-options-explorer;{{{P}}}button-list-multi-select-select-all"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{P}}}options-zone"
+			data-menusounds-selectsound="SelectBrowserSortOption"
+		/>
+		<frameinstance modelid="{{{P}}}framemodel-options-element" id="{{{P}}}frame-options-explorer"
+			pos="-4 0"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Header}}} {{{MenuSounds::C_Class}}}"
+			data-nav-inputs="select;cancel;right;left;down"
+			data-nav-targets="_;_;{{{P}}}frame-options-flatten;{{{P}}}frame-options-refresh;{{{P}}}button-list-multi-select-select-all"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{P}}}options-zone"
+			data-menusounds-selectsound="SelectOpenFolderInExplorer"
+		/>
+	</frame>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="{{{P}}}button-create-map"
+		class="{{{Navigation::C_Class}}} {{{C_Class_Footer}}}" pos="45 -68.5"
+		data-text="{{{ _("Create map")}}}"
+		data-size="48 8"
+		data-textsize="2.8"
+		data-textitalicslope=".2"
+		data-textfont="{{{FontManager::C_GameFontBlack}}}"
+		data-image="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
+		data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
+		data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-focuscolor="FFF"
+		data-halign="center"
+		data-valign="center"
+		data-nav-inputs="select;cancel;right;up"
+		data-nav-targets="_;_;{{{P}}}button-select-map;{{{P}}}frame-browser-map-scroll"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+	/>
+
+	<frame id="{{{P}}}frame-selected-map" pos="58 22">
+		<label id="{{{P}}}label-map" z-index="5" size="65.5 8" pos="18.5 -12.5" class="{{{P}}}text-base" halign="left" valign="center2" textsize="5" textprefix="$i$t"/>
+		<label id="{{{P}}}label-author" z-index="5" size="65.5 8" pos="17.75 -18.75" class="{{{P}}}text-base" halign="left" valign="center2" textsize="5" textprefix="$i$t" textfont="{{{FontManager::C_GameFontRegular}}}"/>
+		<quad id="{{{P}}}quad-overlay-thumbnail" z-index="2" size="97 71" opacity=".4" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Overlay}}}" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}" colorize="000"/>
+		<quad id="{{{P}}}quad-contour-thumbnail" z-index="4" size="97 71" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Contour}}}"/>
+		<quad id="{{{P}}}quad-thumbnail" z-index="1" size="97 71" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}"/>
+		<quad id="{{{P}}}quad-map-thumbnail-bg" z-index="0" colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Background}}}" size="97 71" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}"/>
+
+		<frame
+			id="{{{P}}}button-editor-settings"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Body}}}"
+			pos="70 -58" z-index="6"
+			data-nav-inputs="select;cancel;left;up;down"
+			data-nav-targets="_;_;{{{P}}}frame-browser-map-scroll;{{{P}}}button-list-multi-select-select-all;{{{P}}}button-select-map"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{P}}}quad-activation-zone"
+		>
+			<quad
+				size="10.5 8"
+				opacity="0" scriptevents="1"
+				class="{{{Navigation::C_Class_ActivationZone}}} {{{P}}}image-base"
+				id="{{{P}}}quad-activation-zone"
+			/>
+			<quad size="8 8" z-index="1" class="{{{P}}}image-base" id="{{{P}}}quad-image" colorize="FFF" image="{{{Const::C_ImageUrl_Icon_Edit}}}"/>
+			<quad
+				size="10.5 8"
+				class="{{{Navigation::C_Class_ActivationZone}}} {{{P}}}image-base"
+				image="{{{Const::C_ImageUrl_ButtonBG_SortingIcons}}}" colorize="FFF"
+				id="{{{P}}}quad-bg" opacity="0"
+			/>
+		</frame>
+		<frameinstance modelid="{{{Button::C_Name}}}" id="{{{P}}}button-select-map"
+			data-text="{{{_("Select map")}}}"
+			pos="35.5 -90.5" data-size="48 8"
+			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}" data-focuscolor="FFF"
+			data-textcolor="FFF" data-textsize="2.8"
+			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-image="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
+			data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-textitalicslope=".2"
+			data-valign="center" data-halign="center"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Footer}}}"
+			data-nav-inputs="select;cancel;up;left"
+			data-nav-targets="_;_;{{{P}}}frame-browser-map-scroll;{{{P}}}button-create-map"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<frame id="{{{P}}}frame-selected-skin" pos="55 24">
+		<quad id="{{{P}}}quad-contour-thumbnail" z-index="4" size="105 76.8" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Contour}}}"/>
+		<quad id="{{{P}}}quad-thumbnail-bg" z-index="0" colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Background}}}" size="105 76.8" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}"/>
+		<label id="{{{P}}}label-skin" z-index="5" size="65.5 8" pos="22 -12.5" class="{{{P}}}text-base" halign="left" valign="center2" textsize="5" textprefix="$i"/>
+		<camera id="{{{P}}}camera-skin" z-index="5" pos="51 -33" halign="center" valign="center" size="80 60" hidden="1"/>
+	</frame>
+
+	<frame>
+		<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="{{{P}}}frame-browser-map-scroll" z-index="1" />
+		<frame 
+			pos="{{{Size_BrowsersScrollWindow.X * -0.5 + 2.5}}} 24.5"
+			data-elements-per-line="{{{ColumnsNb}}}"
+			data-elements-per-page="{{{ElementsPerPage}}}"
+			data-element-size="{{{Size_Browser.X}}} {{{Size_Browser.Y}}}"
+			data-margin-size="{{{Size_BrowserMargin.X}}} {{{Size_BrowserMargin.Y}}}"
+			data-window-size="{{{Size_BrowsersScrollWindow.X}}} {{{Size_BrowsersScrollWindow.Y}}}"
+			data-header-height="{{{Size_Header.Y}}}"
+			data-footer-height="{{{Size_Footer.Y}}}"
+			data-scroll-indicator="1"
+			data-skew="-10"
+			data-scrollpadding="9"
+			data-scroll-indicator-y-offset="-8.5"
+			data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+			data-scroll-indicator-colorize="{{{ColorPalette::C_Color_GreenFour}}}"
+			class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}} {{{C_Class_Body}}}"
+			data-nav-inputs="select;cancel;up;right;down"
+			data-nav-targets="_;_;{{{P}}}button-list-multi-select-select-all;{{{P}}}button-editor-settings;{{{P}}}button-select-map"
+			data-nav-group="{{{C_NavGroupName}}}"
+			id="{{{P}}}frame-browser-map-scroll"
+		>
+			<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+			{{{Ml_BrowsersMap}}}
+		</frame>
+		<label id="{{{P}}}label-no-elements" size="{{{Size_BrowsersScrollWindow.X-10.}}} 10" autonewline="1" halign="center" valign="center2" text="{{{C_Text_NoElements}}}" class="{{{P}}}text-base" z-index="1" hidden="1" />
+	</frame>
+
+	<frame>
+		<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="{{{P}}}frame-browser-small-map-scroll" z-index="1" />
+		<frame
+			pos="{{{Size_SmallBrowserScrollWindow.X * -0.5 - 29}}} 19"
+			data-elements-per-line="{{{ColumnsNbSmallMap}}}"
+			data-elements-per-page="{{{SmallMapsPerPage}}}"
+			data-element-size="{{{Size_BrowserSmallMaps.X}}} {{{Size_BrowserSmallMaps.Y}}}"
+			data-margin-size="{{{Size_SmallMapBrowserMargin.X}}} {{{Size_SmallMapBrowserMargin.Y}}}"
+			data-window-size="{{{Size_SmallBrowserScrollWindow.X}}} {{{Size_SmallBrowserScrollWindow.Y}}}"
+			data-header-height="{{{Size_Header.Y}}}"
+			data-footer-height="{{{Size_Footer.Y}}}"
+			data-scroll-indicator="1"
+			data-skew="-10"
+			data-scrollpadding="9"
+			data-scroll-indicator-y-offset="-10.5"
+			data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+			data-scroll-indicator-colorize="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-scrollbar-visibility="{{{Scroll::C_ScrollBarVisibility_Never}}}"
+			class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}} {{{C_Class_Body}}}"
+			data-nav-inputs="select;cancel;up;right;down"
+			data-nav-targets="_;_;{{{P}}}button-list-multi-select-select-all;{{{P}}}button-editor-settings;{{{P}}}button-select-map"
+			data-nav-group="{{{C_NavGroupName}}}"
+			id="{{{P}}}frame-browser-small-map-scroll"
+		>
+			<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+			{{{Ml_BrowsersSmallMap}}}
+		</frame>
+		<label id="{{{P}}}label-no-elements" pos="-30 0" size="{{{Size_SmallBrowserScrollWindow.X-10.}}} 10" autonewline="1" halign="center" valign="center2" text="{{{C_Text_NoElements}}}" class="{{{P}}}text-base" z-index="1" hidden="1" />
+	</frame>
+
+	<frame>
+		<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="{{{P}}}frame-browser-list-scroll" z-index="1" />
+		<frame
+			pos="{{{Size_ListBrowserScrollWindow.X * -0.5 + 2.5}}} 18.5"
+			data-elements-per-line="{{{ColumnsNbList}}}"
+			data-elements-per-page="{{{ListsPerPage}}}"
+			data-element-size="{{{Size_BrowserLists.X}}} {{{Size_BrowserLists.Y}}}"
+			data-margin-size="{{{Size_ListBrowserMargin.X}}} {{{Size_ListBrowserMargin.Y}}}"
+			data-window-size="{{{Size_ListBrowserScrollWindow.X}}} {{{Size_ListBrowserScrollWindow.Y}}}"
+			data-header-height="{{{Size_Header.Y}}}"
+			data-footer-height="{{{Size_Footer.Y}}}"
+			data-scroll-indicator="1"
+			data-skew="-10"
+			data-scrollpadding="11"
+			data-scroll-indicator-y-offset="-11.5"
+			data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+			data-scroll-indicator-colorize="{{{ColorPalette::C_Color_GreenFour}}}"
+			class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}} {{{C_Class_Body}}}"
+			data-nav-inputs="select;cancel;up;down"
+			data-nav-targets="_;_;{{{P}}}button-list-multi-select-select-all;{{{P}}}button-select-map"
+			data-nav-group="{{{C_NavGroupName}}}"
+			id="{{{P}}}frame-browser-list-scroll"
+		>
+			<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+			{{{Ml_BrowsersList}}}
+		</frame>
+		<label id="{{{P}}}label-no-elements" size="{{{Size_ListBrowserScrollWindow.X-10.}}} 10" autonewline="1" halign="center" valign="center2" text="{{{C_Text_NoElements}}}" class="{{{P}}}text-base" z-index="1" hidden="1" />
+	</frame>
+
+	<frame id="{{{P}}}frame-list-buttons">
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="{{{P}}}button-list-multi-select-valid"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Footer}}}"
+			pos="93.5 -68.5" z-index="1"
+			data-text="{{{_("Confirm")}}}"
+			data-size="48 8"
+			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}" data-focuscolor="FFF"
+			data-textcolor="FFF" data-textsize="2.8"
+			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-image="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
+			data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-textitalicslope=".2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="up;left;select;cancel"
+			data-nav-targets="{{{P}}}frame-browser-list-scroll;{{{P}}}button-create-map;_;_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="{{{P}}}button-list-multi-select-select-all"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Body}}}"
+			pos="75 24" z-index="1"
+			data-text="{{{_("Select all")}}}"
+			data-size="48 8"
+			data-bgempty="1"
+			data-opacityunfocus=".5"
+			data-textcolor="FFF" data-textsize="2.8"
+			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-textfocuscolor="FFF"
+			data-textitalicslope=".2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="up;down;right;select;cancel"
+			data-nav-targets="{{{P}}}frame-parent-path;{{{P}}}frame-browser-list-scroll;{{{P}}}button-list-multi-select-unselect-all;_;_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="{{{P}}}button-list-multi-select-unselect-all"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Body}}}"
+			pos="120 24" z-index="1"
+			data-text="{{{_("Unselect all")}}}"
+			data-size="48 8"
+			data-bgempty="1"
+			data-opacityunfocus=".5"
+			data-textcolor="FFF" data-textsize="2.8"
+			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-textfocuscolor="FFF"
+			data-textitalicslope=".2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="up;down;left;select;cancel"
+			data-nav-targets="{{{P}}}frame-parent-path;{{{P}}}frame-browser-list-scroll;{{{P}}}button-list-multi-select-select-all;_;_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<frame id="{{{P}}}frame-tooltip" pos="5.5 28" hidden="1">
+		<label id="{{{P}}}label-tooltip" class="{{{P}}}text-base" size="278 10" textsize="4" />
+	</frame>
+	
+	<frameinstance id="{{{P}}}frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" />
+</frame>
+""",
+"""
+#Include "TextLib" as {{{P}}}TL
+#Include "ColorLib" as {{{P}}}CL
+
+#Const {{{P}}}C_BrowserPopUpSize {{{dump(C_BrowserPopUpSize)}}}
+#Const {{{P}}}C_BrowserPopUpPosY {{{dump(C_BrowserPopUpPosY)}}}
+
+#Const {{{P}}}C_EventType_UnFocusScroll {{{C_EventType_UnFocusScroll}}}
+#Const {{{P}}}C_EventType_Select {{{C_EventType_Select}}}
+#Const {{{P}}}C_EventType_Cancel {{{C_EventType_Cancel}}}
+#Const {{{P}}}C_EventType_CreateMap {{{C_EventType_CreateMap}}}
+#Const {{{P}}}C_EventType_ReachLimit {{{C_EventType_ReachLimit}}}
+#Const {{{P}}}C_EventType_Focus {{{C_EventType_Focus}}}
+#Const {{{P}}}C_EventType_ConfirmSelection {{{C_EventType_ConfirmSelection}}}
+#Const {{{P}}}C_EventType_EditorSettings {{{C_EventType_EditorSettings}}}
+#Const {{{P}}}C_EventType_MultiSelect {{{C_EventType_MultiSelect}}}
+
+#Const {{{P}}}C_BrowserType_None {{{dump(C_BrowserType_None)}}}
+#Const {{{P}}}C_BrowserType_PathNavigation {{{dump(C_BrowserType_PathNavigation)}}}
+#Const {{{P}}}C_BrowserType_PathNavigationSmall {{{dump(C_BrowserType_PathNavigationSmall)}}}
+#Const {{{P}}}C_BrowserType_List {{{dump(C_BrowserType_List)}}}
+
+#Const {{{P}}}C_TooltipPos_ScrollTop {{{dump(C_TooltipPos_ScrollTop )}}}
+#Const {{{P}}}C_TooltipPos_Footer {{{dump(C_TooltipPos_Footer )}}}
+
+#Const {{{P}}}C_TaskListState_None {{{C_TaskListState_None}}}
+#Const {{{P}}}C_TaskListState_IsProcessing {{{C_TaskListState_IsProcessing}}}
+#Const {{{P}}}C_TaskListState_HasSucceeded {{{C_TaskListState_HasSucceeded}}}
+#Const {{{P}}}C_TaskListState_HasFailed {{{C_TaskListState_HasFailed}}}
+#Const {{{P}}}C_TaskListState_IsCanceled {{{C_TaskListState_IsCanceled}}}
+
+#Const {{{P}}}C_DataType_None {{{C_DataType_None}}}
+#Const {{{P}}}C_DataType_Image {{{C_DataType_Image}}}
+#Const {{{P}}}C_DataType_Skin {{{C_DataType_Skin}}}
+#Const {{{P}}}C_DataType_Map {{{C_DataType_Map}}}
+#Const {{{P}}}C_DataType_Replay {{{C_DataType_Replay}}}
+#Const {{{P}}}C_DataType_Campaign {{{C_DataType_Campaign}}}
+#Const {{{P}}}C_DataType_MonthlyCampaign {{{C_DataType_MonthlyCampaign}}}
+#Const {{{P}}}C_DataType_Script {{{C_DataType_Script}}}
+#Const {{{P}}}C_DataType_MatchSettings {{{C_DataType_MatchSettings}}}
+#Const {{{P}}}C_DataType_Category {{{C_DataType_Category}}}
+#Const {{{P}}}C_DataType_Club {{{C_DataType_Club}}}
+
+#Const {{{P}}}C_DataType_NameList {{{dump(C_DataType_NameList)}}}
+
+#Const {{{P}}}C_DelayBetweenRequest {{{dump(C_DelayBetweenRequest)}}}
+
+#Const {{{P}}}C_DataType_IsFileList [
+	{{{C_DataType_Image}}},
+	{{{C_DataType_Skin}}},
+	{{{C_DataType_Script}}},
+	{{{C_DataType_MatchSettings}}}
+]
+#Const {{{P}}}C_DataType_CanBeMultiSelect [
+	{{{C_DataType_Replay}}},
+	{{{C_DataType_Map}}}
+]
+#Const {{{P}}}C_DataType_HasCloudFolder [
+	{{{C_DataType_Map}}}
+]
+
+#Const {{{P}}}C_Path_Base {{{dump(C_Path_Base)}}}
+#Const {{{P}}}C_Path_Officials {{{dump(C_Path_Officials)}}}
+#Const {{{P}}}C_Path_Quarterly {{{dump(C_Path_Quarterly)}}}
+#Const {{{P}}}C_Path_Monthly {{{dump(C_Path_Monthly)}}}
+#Const {{{P}}}C_Path_Clubs {{{dump(C_Path_Clubs)}}}
+#Const {{{P}}}C_Path_ChosenClub {{{dump(C_Path_ChosenClub)}}}
+#Const {{{P}}}C_Path_Local {{{dump(C_Path_Local)}}}
+#Const {{{P}}}C_Path_Null {{{dump(C_Path_Null)}}}
+
+#Const {{{P}}}C_Paths_Tree [
+	{{{dump(C_Path_Base)}}} => [{{{dump(C_Path_Local)}}}, {{{dump(C_Path_Officials)}}}, {{{dump(C_Path_Clubs)}}}],
+	{{{dump(C_Path_Officials)}}} => [{{{dump(C_Path_Quarterly)}}}, {{{dump(C_Path_Monthly)}}}],
+	{{{dump(C_Path_Clubs)}}} => [{{{dump(C_Path_ChosenClub)}}}]
+]
+
+#Const {{{P}}}C_Paths_Names {{{dump(C_Paths_Names)}}}
+#Const {{{P}}}C_Month_Names {{{dump(Const::C_Month_Names)}}}
+
+#Const {{{P}}}C_BasePath "file://"
+#Const {{{P}}}C_BasePath_Media "Media/"
+#Const {{{P}}}C_BasePath_Skins "Skins/"
+
+#Const {{{P}}}C_Browser_NullDataCount 0
+
+#Struct {{{P}}}K_ReplayInfo {
+	Text Id;
+	Text MapUid;
+	Text Name;
+	Text Path;
+	Text ParentPath;
+	Text FilePath;
+	Text FileName;
+}
+
+#Struct {{{P}}}K_MapBrowserData {
+	Text SubFolder;
+	{{{CampaignStruct::P}}}K_Map MapInfo;
+	Text Path;
+	Text ParentPath;
+}
+
+#Struct {{{P}}}K_ReplayBrowserData {
+	Text SubFolder;
+	{{{P}}}K_ReplayInfo ReplayInfo;
+}
+
+#Struct {{{P}}}K_SkinBrowserData {
+	Ident SceneId;
+	Ident CurrentItemId;
+}
+
+#Struct {{{P}}}K_FileBrowserData {
+	Text SubFolder;
+	Text File;
+	Text Path;
+	Text ParentPath;
+}
+
+#Struct {{{P}}}K_TaskResult_FileData {
+	CTaskResult_FileList TaskResultList;
+	Integer TaskListState;
+	{{{P}}}K_FileBrowserData[Integer] Datas;
+}
+
+#Struct {{{P}}}K_BrowserElement {
+	Text Name;
+	Text File;
+	Text TypeName;
+	Text Missing;
+	Boolean IsSubfolder;
+	Text MapUid;
+}
+
+#Struct {{{P}}}K_RequestsManager {
+	Integer PageMonthly;
+	Integer PageQuarterly;
+	Integer PageClubCampaigns;
+	Integer PageClubs;
+	Boolean WaitingForMonthlyCampaigns;
+	Boolean WaitingForQuarterlyCampaigns;
+	Boolean WaitingForClubCampaigns;
+	Boolean WaitingForClubs;
+	Boolean WaitingForLoadedCampaign;
+	Boolean WaitingForLoadedMonthlyCampaign;
+	Boolean[Integer] DisplayLiveContent; // < Key is CampaignType from Campaign Struct
+	Boolean CampaignIsLoaded;
+	Boolean CampaignLoadFail;
+	Boolean MonthlyCampaignIsLoaded;
+	Boolean MonthlyCampaignLoadFail;
+	Integer NextPageLoadTime;
+	Boolean GetCampaign;
+}
+
+#Struct {{{P}}}K_Settings {
+	Boolean ShowOnlyUserMaps;
+	Boolean ShowOnlyPlayableMaps;
+	Text[] FilterByEnvironment;
+	Boolean DisplayCreateMapButton;
+	Boolean ListMultiSelect;
+	Boolean DisplayEditorSettingsButton;
+	Text[] FilterByExtension;
+	Boolean IsBrowsingForEdition;
+	Boolean DisableCloudFolder;
+	Boolean DisplayFileNameTooltip;
+	Integer PositionFileNameTooltip;
+}
+
+#Struct {{{P}}}K_Browser {
+	Integer Type;
+	Text Name;
+	Text SubTitle;
+	Integer[] DataTypes;
+	Boolean IsFocused;
+	Text BasePath;
+	Text ParentPath;
+	Text CurrentPath;
+	Integer ChosenClubId;
+	{{{CampaignStruct::P}}}K_Campaign ChosenCampaign;
+	{{{CampaignStruct::P}}}K_MonthlyCampaign ChosenMonthlyCampaign;
+	CTaskResult_MapList TaskResultList_Map;
+	CTaskResult_ReplayList TaskResultList_Replay;
+	Integer MapTaskListState;
+	Integer ReplayTaskListState;
+	{{{P}}}K_TaskResult_FileData[Integer] Files; // Key is the data type of the Files
+	{{{P}}}K_MapBrowserData[Integer] Maps;
+	{{{P}}}K_ReplayBrowserData[Integer] Replays;
+	{{{P}}}K_SkinBrowserData Skin;
+	{{{CampaignStruct::P}}}K_Campaign[Integer] Campaigns;
+	{{{ClubStruct::P}}}K_Club[Integer] Clubs;
+	{{{ClubStruct::P}}}K_Room[Integer] Rooms;
+	Boolean IsFlatten;
+	Boolean IsSortingFromAscendingOrder;
+	Boolean IsSortingByNameElseByDate;
+	{{{P}}}K_Settings Settings;
+	{{{P}}}K_ReplayInfo[Text] SelectedReplays;
+	{{{CampaignStruct::P}}}K_Map[Text] SelectedMaps;
+}
+
+#Struct {{{P}}}K_Event {
+	Integer Type;
+	CMlControl From;
+	CMlScriptEvent::EMenuNavAction MenuNavAction;
+	Integer DataType;
+	Text Data;
+}
+""",
+"""
+declare {{{P}}}K_Browser[Integer] {{{P}}}G_Browsers;
+declare Integer {{{P}}}G_Type_CurrentBrowser;
+declare {{{P}}}K_Event[] {{{P}}}PendingEvents;
+declare CMlFrame {{{P}}}G_Frame_Global;
+declare CMlFrame {{{P}}}G_Frame_CurrentScroll;
+declare {{{P}}}K_RequestsManager {{{P}}}G_RequestsManager;
+declare Text[][Text] {{{P}}}G_Paths_Tree;
+declare {{{P}}}K_MapBrowserData {{{P}}}G_PreSelectedMapBrowserData;
+declare CMlControl {{{P}}}G_Frame_FocusHeader;
+declare CMlControl {{{P}}}G_Frame_FocusBody;
+declare CMlControl {{{P}}}G_Frame_FocusFooter;
+
+Text {{{P}}}GetCurrentBrowserName() {
+	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return "";
+
+	return {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Name;
+}
+
+{{{P}}}K_Settings {{{P}}}GetDefaultSettings() {
+	return {{{P}}}K_Settings {
+		ShowOnlyUserMaps = False,
+		ShowOnlyPlayableMaps = False,
+		FilterByEnvironment = ["{{{EnvironmentInfo::C_Collection_Stadium}}}"],
+		DisplayCreateMapButton = True,
+		ListMultiSelect = False,
+		DisplayEditorSettingsButton = False,
+		FilterByExtension = [],
+		IsBrowsingForEdition = False,
+		DisableCloudFolder = False,
+		DisplayFileNameTooltip = False,
+		PositionFileNameTooltip = {{{P}}}C_TooltipPos_Footer
+	};
+}
+
+Void {{{P}}}FocusScroll(Boolean _IsScrollFocused) {
+	if (_IsScrollFocused) {
+		{{{Scroll::P}}}Focus({{{P}}}G_Frame_CurrentScroll);
+	} else {
+		{{{Scroll::P}}}Unfocus({{{P}}}G_Frame_CurrentScroll);
+	}
+}
+
+Text {{{P}}}GetLastNameOfPath(Text _FolderPath) {
+	declare Text Path = {{{P}}}TL::Replace(_FolderPath, "\\", "/");
+	declare Text[] TmpSplit = {{{P}}}TL::Split("/", Path);
+	if (TmpSplit.count == 0) return _FolderPath;
+
+	return TmpSplit[TmpSplit.count-1];
+}
+
+Void {{{P}}}DestroyScene() {
+	if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId != NullId) {
+		if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId != NullId) {
+			MenuSceneMgr.ItemDestroy({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId);
+			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId = NullId;
+		}
+		MenuSceneMgr.SceneDestroy({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId);
+		{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId = NullId;
+	}
+}
+
+Void {{{P}}}FocusSkin(Boolean _Focused, Text _SkinName, Text _SkinPath) {
+	declare Frame_SelectedSkin <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-selected-skin") as CMlFrame);
+	declare Label_Skin = (Frame_SelectedSkin.GetFirstChild("{{{P}}}label-skin") as CMlLabel);
+	declare CMlCamera Camera_Skin = (Frame_SelectedSkin.GetFirstChild("{{{P}}}camera-skin") as CMlCamera);
+	Camera_Skin.Visible = _Focused;
+	if (_Focused && {{{P}}}TL::EndsWith(".zip", _SkinPath)) {
+		if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId == NullId) {
+			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId = MenuSceneMgr.SceneCreate("Empty");
+		}
+		if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId != NullId) {
+			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId = MenuSceneMgr.ItemCreate({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, {{{ClubStruct::P}}}C_CameraSkinModel, _SkinPath, "");
+			Label_Skin.SetText(_SkinName);
+		}
+	} else {
+		{{{P}}}DestroyScene();
+		Label_Skin.SetText("");
+	} 
+}
+
+Void {{{P}}}FocusBrowserElement(CMlFrame _Frame_BrowserElement, Boolean _Focused) {
+	if (_Frame_BrowserElement == Null) return;
+	declare CMlFrame Quad9_Select <=> (_Frame_BrowserElement.GetFirstChild("{{{P}}}quad9-select") as CMlFrame);
+	if (Quad9_Select != Null) Quad9_Select.Visible = _Focused;
+	declare Quad_Focus <=> (_Frame_BrowserElement.GetFirstChild("{{{P}}}quad-focus") as CMlQuad);
+	declare Quad_Check <=> (_Frame_BrowserElement.GetFirstChild("{{{P}}}quad-check") as CMlQuad);
+	if (Quad_Focus != Null) Quad_Focus.Visible = _Focused;
+	if (_Focused) {
+		if (Quad_Check != Null) Quad_Check.Colorize = {{{P}}}CL::Hex3ToRgb("FFF");
+		(_Frame_BrowserElement.GetFirstChild("{{{P}}}label-name") as CMlLabel).TextColor = {{{P}}}CL::Hex3ToRgb("FFF");
+	} else {
+		if (Quad_Check != Null) Quad_Check.Colorize = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+		(_Frame_BrowserElement.GetFirstChild("{{{P}}}label-name") as CMlLabel).TextColor = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+	}
+	if (
+		{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser) &&
+		{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.DisplayFileNameTooltip
+	) {
+		declare Label_Tooltip <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}label-tooltip") as CMlLabel);
+		if (_Focused) {
+			declare Text {{{P}}}Tooltip for _Frame_BrowserElement;
+			Label_Tooltip.Value = {{{P}}}Tooltip;
+			Label_Tooltip.Visible = True;
+		} else {
+			Label_Tooltip.Visible = False;
+		}
+	}
+	
+	if (
+		{{{P}}}G_Frame_Global.Parent.Visible &&
+		{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Skin) &&
+		{{{P}}}G_Type_CurrentBrowser == {{{P}}}C_BrowserType_PathNavigationSmall
+	) {
+		declare Text {{{P}}}FileName for _Frame_BrowserElement;
+		declare Text {{{P}}}FilePath for _Frame_BrowserElement;
+		{{{P}}}FocusSkin(_Focused, {{{P}}}FileName, {{{P}}}FilePath);
+	}
+}
+
+Void {{{P}}}FocusOption(CMlFrame _FrameToFocus, Boolean _IsVisible) {
+	if (
+		_FrameToFocus == Null ||
+		_FrameToFocus.ControlId == "frame-browser-scroll" ||
+			(
+				_FrameToFocus.ControlId != "{{{P}}}frame-parent-path" &&
+				!{{{P}}}TL::StartsWith("{{{P}}}frame-options-", _FrameToFocus.ControlId) &&
+				_FrameToFocus.ControlId != "{{{P}}}button-editor-settings"
+			)
+	) return;
+
+	declare Quad_Image <=> (_FrameToFocus.GetFirstChild("{{{P}}}quad-image") as CMlQuad);
+	declare Quad_BG <=> (_FrameToFocus.GetFirstChild("{{{P}}}quad-bg") as CMlQuad);
+	if (Quad_BG == Null || Quad_Image == Null) return;
+
+	if (_IsVisible) {
+		Quad_Image.Colorize = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+		Quad_BG.Opacity = 1.;
+	} else {
+		Quad_Image.Colorize = {{{P}}}CL::Hex3ToRgb("FFF");
+		Quad_BG.Opacity = 0.;
+	}
+}
+
+Void {{{P}}}FocusEditorSettings(CMlFrame _Button_EditorSettings, Boolean _Focused) {
+	declare Quad_ActivationZone <=> (_Button_EditorSettings.GetFirstChild("{{{P}}}quad-activation-zone") as CMlQuad);
+	declare Label_EditorSettings <=> (_Button_EditorSettings.GetFirstChild("{{{P}}}label-editor-settings") as CMlLabel);
+	if (_Focused) {
+		Label_EditorSettings.TextColor = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+		Quad_ActivationZone.Colorize = {{{P}}}CL::Hex6ToRgb("ffffff");
+	} else {
+		Label_EditorSettings.TextColor = {{{P}}}CL::Hex6ToRgb("ffffff");
+		Quad_ActivationZone.Colorize = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+	}
+}
+
+Boolean {{{P}}}IsScrollFocused() {
+	return {{{Scroll::P}}}IsFocused({{{P}}}G_Frame_CurrentScroll);
+}
+
+Void {{{P}}}Focus(CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition()) return;
+	
+	declare Focused_Control = {{{Navigation::P}}}GetFocusedControl("{{{C_NavGroupName}}}");
+	if (Focused_Control != Null) {
+		{{{Navigation::P}}}Unfocus(Focused_Control);
+		if (Focused_Control is CMlFrame) {
+			{{{P}}}FocusOption((Focused_Control as CMlFrame), False);
+			{{{Button::P}}}Unfocus((Focused_Control as CMlFrame));
+			if (Focused_Control.HasClass("{{{C_Class_Header}}}")) {
+				{{{P}}}G_Frame_FocusHeader = Focused_Control;
+			} else if (Focused_Control.HasClass("{{{C_Class_Body}}}")) {
+				{{{P}}}G_Frame_FocusBody = Focused_Control;
+			} else if (Focused_Control.HasClass("{{{C_Class_Footer}}}")) {
+				{{{P}}}G_Frame_FocusFooter = Focused_Control;
+			}
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(_To);
+		if (_To is CMlFrame) {
+			{{{P}}}FocusOption((_To as CMlFrame), True);
+			{{{Button::P}}}Focus((_To as CMlFrame));
+			if ({{{P}}}G_Frame_CurrentScroll != Null && _To.ControlId == {{{P}}}G_Frame_CurrentScroll.ControlId && !{{{P}}}IsScrollFocused()) {
+				{{{P}}}FocusScroll(True);
+			}
+			{{{P}}}PendingEvents.add({{{P}}}K_Event {
+				Type = {{{P}}}C_EventType_Focus
+			});
+			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].IsFocused = True;
+		}
+	}
+}
+
+Void {{{P}}}SetPathLabelValue(Integer _BrowserType, Text _Value) {
+	declare CMlLabel Label_Path <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}label-path") as CMlLabel);
+	Label_Path.Value = _Value;
+
+	if ({{{P}}}G_Browsers.existskey(_BrowserType)) {
+		switch ({{{P}}}G_Browsers[_BrowserType].CurrentPath) {
+			case {{{P}}}C_Path_Base: {
+				Label_Path.Value = "";
+			}
+			case {{{P}}}C_Path_Officials: {
+				Label_Path.Value = "";
+			}
+			case {{{P}}}C_Path_Clubs: {
+				Label_Path.Value = "";
+			}
+			case {{{P}}}C_Path_Monthly: {
+				Label_Path.Value = {{{P}}}C_Paths_Names[{{{P}}}C_Path_Officials];
+			}
+			case {{{P}}}C_Path_Quarterly: {
+				Label_Path.Value = {{{P}}}C_Paths_Names[{{{P}}}C_Path_Officials];
+			}
+			case {{{P}}}C_Path_ChosenClub: {
+				Label_Path.Value = {{{P}}}C_Paths_Names[{{{P}}}C_Path_Clubs];
+			}
+		}
+	}
+}
+
+Void {{{P}}}FocusBrowser(Boolean _IsFocused) {
+	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return;
+
+	{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].IsFocused = _IsFocused;
+	{{{P}}}FocusScroll(_IsFocused);
+	if (!_IsFocused) {
+		{{{P}}}Focus(Null);
+	} else {
+		{{{P}}}PendingEvents.add({{{P}}}K_Event {
+			Type = {{{P}}}C_EventType_Focus
+		});
+		{{{P}}}SetPathLabelValue({{{P}}}G_Type_CurrentBrowser, {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].CurrentPath);
+	}
+}
+
+Boolean {{{P}}}IsBrowserFocused() {
+	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return False;
+
+	return {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].IsFocused;
+}
+
+Integer {{{P}}}GetBrowserDataCount(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return {{{P}}}C_Browser_NullDataCount;
+	declare Integer DataCount = {{{P}}}C_Browser_NullDataCount;
+
+	switch ({{{P}}}G_Browsers[_BrowserType].CurrentPath) {
+		case {{{P}}}C_Path_Base: {
+			if ({{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map) || {{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Campaign)) {
+				if ({{{P}}}G_RequestsManager.DisplayLiveContent.existskey({{{CampaignStruct::P}}}C_CampaignType_Quarterly)) {
+					if ({{{P}}}G_RequestsManager.DisplayLiveContent[{{{CampaignStruct::P}}}C_CampaignType_Quarterly]) DataCount += 1;
+				} else if ({{{P}}}G_RequestsManager.DisplayLiveContent.existskey({{{CampaignStruct::P}}}C_CampaignType_Monthly)) {
+					if ({{{P}}}G_RequestsManager.DisplayLiveContent[{{{CampaignStruct::P}}}C_CampaignType_Monthly]) DataCount += 1;
+				}
+				if ({{{P}}}G_RequestsManager.DisplayLiveContent.existskey({{{CampaignStruct::P}}}C_CampaignType_Club)) {
+					if ({{{P}}}G_RequestsManager.DisplayLiveContent[{{{CampaignStruct::P}}}C_CampaignType_Club]) DataCount += 1;
+				}
+			}
+			return DataCount+1;
+		}
+		case {{{P}}}C_Path_Officials: {
+			if ({{{P}}}G_RequestsManager.DisplayLiveContent.existskey({{{CampaignStruct::P}}}C_CampaignType_Quarterly)) {
+				if ({{{P}}}G_RequestsManager.DisplayLiveContent[{{{CampaignStruct::P}}}C_CampaignType_Quarterly]) DataCount += 1;
+			}
+			if ({{{P}}}G_RequestsManager.DisplayLiveContent.existskey({{{CampaignStruct::P}}}C_CampaignType_Monthly)) {
+				if ({{{P}}}G_RequestsManager.DisplayLiveContent[{{{CampaignStruct::P}}}C_CampaignType_Monthly]) DataCount += 1;
+			}
+			return DataCount;
+		}
+		case {{{P}}}C_Path_Clubs: {
+			return {{{ClubStore::P}}}GetBrowserClubsTotal();
+		}
+		case {{{P}}}C_Path_Quarterly: {
+			if ({{{P}}}G_Browsers[_BrowserType].ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				foreach (Category in {{{P}}}G_Browsers[_BrowserType].ChosenCampaign.Categories) {
+					DataCount += Category.Playlist.count;
+				}
+				return DataCount;
+			} else {
+				return {{{CampaignStore::P}}}GetCampaignsTotal({{{CampaignStruct::P}}}C_CampaignType_Quarterly);
+			}
+		}
+		case {{{P}}}C_Path_Monthly: {
+			if ({{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				return {{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign.DailyMaps.count;
+			} else {
+				return {{{CampaignStore::P}}}GetMonthlyCampaignsTotal();
+			}
+		}
+		case {{{P}}}C_Path_ChosenClub: {
+			if ({{{P}}}G_Browsers[_BrowserType].ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				foreach (Category in {{{P}}}G_Browsers[_BrowserType].ChosenCampaign.Categories) {
+					DataCount += Category.Playlist.count;
+				}
+				return DataCount;
+			} else {
+				return {{{CampaignStore::P}}}GetClubCampaignsTotal({{{P}}}G_Browsers[_BrowserType].ChosenClubId);
+			}
+		}
+		default: {
+			foreach (Type in {{{P}}}G_Browsers[_BrowserType].DataTypes) {
+				if ({{{P}}}C_DataType_IsFileList.exists(Type) && {{{P}}}G_Browsers[_BrowserType].Files.existskey(Type)) {
+					DataCount += {{{P}}}G_Browsers[_BrowserType].Files[Type].Datas.count;
+				} else {
+					switch (Type) {
+						case {{{P}}}C_DataType_Map: {
+							DataCount += {{{P}}}G_Browsers[_BrowserType].Maps.count;
+						}
+						case {{{P}}}C_DataType_Replay: {
+							DataCount += {{{P}}}G_Browsers[_BrowserType].Replays.count;
+						}
+						case {{{P}}}C_DataType_Campaign: {
+							DataCount += {{{P}}}G_Browsers[_BrowserType].Campaigns.count;
+						}
+					}
+				}
+			}
+		}
+	}
+	return DataCount;
+}
+
+Integer {{{P}}}GetDataType(Integer _BrowserType, Integer _DataKey) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return {{{P}}}C_DataType_None;
+	declare CurrentBrowser = {{{P}}}G_Browsers[_BrowserType];
+
+	switch (CurrentBrowser.CurrentPath) {
+		case {{{P}}}C_Path_Base: return {{{P}}}C_DataType_Category;
+		case {{{P}}}C_Path_Officials: return {{{P}}}C_DataType_Category;
+		case {{{P}}}C_Path_Clubs: return {{{P}}}C_DataType_Club;
+		case {{{P}}}C_Path_Quarterly: {
+			if (CurrentBrowser.ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				return {{{P}}}C_DataType_Map;
+			} else {
+				return {{{P}}}C_DataType_Campaign;
+			}
+		}
+		case {{{P}}}C_Path_Monthly: {
+			if (CurrentBrowser.ChosenMonthlyCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				return {{{P}}}C_DataType_Map;
+			} else {
+				return {{{P}}}C_DataType_MonthlyCampaign;
+			}
+		}
+		case {{{P}}}C_Path_ChosenClub: {
+			if (CurrentBrowser.ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				return {{{P}}}C_DataType_Map;
+			} else {
+				return {{{P}}}C_DataType_Campaign;
+			}
+		}
+		default: {
+			declare DataCount = 0;
+			foreach (Type in CurrentBrowser.DataTypes) {
+				if ({{{P}}}C_DataType_IsFileList.exists(Type) && CurrentBrowser.Files.existskey(Type)) {
+					if (CurrentBrowser.Files[Type].Datas.count + DataCount > _DataKey) return Type;
+					DataCount += CurrentBrowser.Files[Type].Datas.count;
+				} else {
+					switch (Type) {
+						case {{{P}}}C_DataType_Map: {
+							if (CurrentBrowser.Maps.count + DataCount > _DataKey) return Type;
+							DataCount += CurrentBrowser.Maps.count;
+						}
+						case {{{P}}}C_DataType_Replay: {
+							if (CurrentBrowser.Replays.count + DataCount > _DataKey) return Type;
+							DataCount += CurrentBrowser.Replays.count;
+						}
+						case {{{P}}}C_DataType_Campaign: {
+							if (CurrentBrowser.Campaigns.count + DataCount > _DataKey) return Type;
+							DataCount += CurrentBrowser.Campaigns.count;
+						}
+					}
+				}
+			}
+		}
+	}
+	return {{{P}}}C_DataType_None;
+}
+
+Void {{{P}}}UpdateBrowserContent(CMlFrame _Frame_Scroll, Integer _DataCount) {
+	if (_Frame_Scroll == Null) return;
+
+	{{{Navigation::P}}}Lock(_Frame_Scroll, _DataCount <= 0);
+	if ({{{P}}}IsScrollFocused()) {
+		if (_DataCount <= 0) {
+			declare Frame_ParentPath <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-parent-path") as CMlFrame);
+			{{{P}}}Focus(Frame_ParentPath);
+			{{{P}}}FocusScroll(False);
+		} else {
+			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].IsFocused = True;
+			{{{P}}}FocusScroll(True);
+		}
+	}
+	{{{Scroll::P}}}SetElementsTotal(_Frame_Scroll, _DataCount);
+}
+
+Void {{{P}}}UpdateLocalMapsData(Integer _BrowserType, {{{P}}}K_MapBrowserData[] _MapBrowserDataList) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType) || !{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map)) return;
+
+	declare Integer DataCount = {{{P}}}GetBrowserDataCount(_BrowserType);
+
+	foreach (Index => MapBrowserData in _MapBrowserDataList) {
+		{{{P}}}G_Browsers[_BrowserType].Maps[DataCount + Index] = MapBrowserData;
+	}
+
+	if (_BrowserType == {{{P}}}G_Type_CurrentBrowser) {
+		{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount(_BrowserType));
+	}
+}
+
+Void {{{P}}}UpdateLocalReplaysData(Integer _BrowserType, {{{P}}}K_ReplayBrowserData[] _ReplayBrowserData) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+
+	declare DataCount = {{{P}}}GetBrowserDataCount(_BrowserType);
+	
+	foreach (Index => ReplayBrowserData in _ReplayBrowserData) {
+		{{{P}}}G_Browsers[_BrowserType].Replays[DataCount + Index] = ReplayBrowserData;
+	}
+
+	if (_BrowserType == {{{P}}}G_Type_CurrentBrowser) {
+		{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount(_BrowserType));
+	}
+}
+
+Void {{{P}}}SetLocalData(Integer _BrowserType, Integer _DataType, {{{P}}}K_FileBrowserData[] _FileBrowserDataList) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType) || !{{{P}}}G_Browsers[_BrowserType].Files.existskey(_DataType)) return;
+	
+	declare DataCount = {{{P}}}GetBrowserDataCount(_BrowserType);
+	
+	foreach (Index => FileBrowserData in _FileBrowserDataList) {
+		{{{P}}}G_Browsers[_BrowserType].Files[_DataType].Datas[DataCount + Index] = FileBrowserData;
+	}
+
+	if (_BrowserType == {{{P}}}G_Type_CurrentBrowser) {
+		{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount(_BrowserType));
+	}
+}
+
+Text {{{P}}}GetFullPath(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return "";
+
+	declare BasePath = {{{P}}}G_Browsers[_BrowserType].BasePath;
+	foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+		if (BasePath == ParentPath) return "";
+		foreach (Path in PathList) {
+			if (BasePath == Path) return "";
+		}
+	}
+
+	return {{{P}}}G_Browsers[_BrowserType].BasePath ^ {{{P}}}G_Browsers[_BrowserType].CurrentPath;
+}
+
+Integer {{{P}}}GetElementsPerPage(Integer _BrowserType) {
+
+	switch (_BrowserType) {
+		case {{{P}}}C_BrowserType_PathNavigation: {
+			return {{{ElementsPerPage}}};
+		}
+		case {{{P}}}C_BrowserType_PathNavigationSmall: {
+			return {{{SmallMapsPerPage}}};
+		}
+		case {{{P}}}C_BrowserType_List: {
+			return {{{ListsPerPage}}};
+		}
+	}
+	return 0;
+}
+
+Void {{{P}}}FetchLiveData(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+
+	{{{LoadingSpinner::P}}}StartAnimation({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-loading-spinner"));
+	if ({{{P}}}G_Frame_CurrentScroll != Null) {
+		{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, 0); //< Avoid some flickering
+		{{{P}}}G_Frame_CurrentScroll.Visible = False;
+	}
+
+	declare ElementsPerPage = {{{P}}}GetElementsPerPage(_BrowserType);
+	{{{CampaignStore::P}}}Action_LoadCampaignsPage({{{CampaignStruct::P}}}C_CampaignType_Quarterly, {{{P}}}G_RequestsManager.PageQuarterly, ElementsPerPage);
+	{{{CampaignStore::P}}}Action_LoadMonthlyCampaignsPage({{{P}}}G_RequestsManager.PageMonthly, ElementsPerPage);
+	{{{ClubStore::P}}}Action_LoadClubsBrowserPage({{{P}}}G_RequestsManager.PageClubs, ElementsPerPage);
+	{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns = True;
+	{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns = True;
+	{{{P}}}G_RequestsManager.WaitingForClubs = True;
+}
+
+Void {{{P}}}FetchLocalData(Integer _BrowserType, Text _Path) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	declare {{{P}}}K_Browser CurrentBrowser = {{{P}}}G_Browsers[_BrowserType];
+
+	declare Integer BrowserFilter = {{{Const::C_BrowserFilter_UserData}}};
+	if ({{{Config::P}}}Get().IsDebug) BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
+	foreach (Type in CurrentBrowser.DataTypes) {
+		if (Type == {{{P}}}C_DataType_Map) {
+			if (CurrentBrowser.TaskResultList_Map != Null) {
+				DataFileMgr.TaskResult_Release(CurrentBrowser.TaskResultList_Map.Id);
+			}
+			{{{P}}}G_Browsers[_BrowserType].TaskResultList_Map = DataFileMgr.Map_GetFilteredGameList(
+				BrowserFilter,
+				_Path,
+				CurrentBrowser.IsFlatten,
+				CurrentBrowser.IsSortingByNameElseByDate,
+				CurrentBrowser.IsSortingFromAscendingOrder
+			);
+		} else if (Type == {{{P}}}C_DataType_Replay) {
+			if (CurrentBrowser.TaskResultList_Replay != Null) {
+				DataFileMgr.TaskResult_Release(CurrentBrowser.TaskResultList_Replay.Id);
+			}
+			{{{P}}}G_Browsers[_BrowserType].TaskResultList_Replay = DataFileMgr.Replay_GetFilteredGameList(
+				BrowserFilter,
+				_Path,
+				CurrentBrowser.IsFlatten,
+				CurrentBrowser.IsSortingByNameElseByDate,
+				CurrentBrowser.IsSortingFromAscendingOrder
+			);
+		} else if (CurrentBrowser.Files.existskey(Type)) {
+			if (CurrentBrowser.Files[Type].TaskResultList != Null) {
+				DataFileMgr.TaskResult_Release(CurrentBrowser.Files[Type].TaskResultList.Id);
+			}
+			declare CDataFileMgr::EMediaType MediaType;
+			switch (Type) {
+				case {{{P}}}C_DataType_Image: MediaType = CDataFileMgr::EMediaType::Image;
+				case {{{P}}}C_DataType_Skin: MediaType = CDataFileMgr::EMediaType::Skins;
+				case {{{P}}}C_DataType_Script: {
+					BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
+					MediaType = CDataFileMgr::EMediaType::Script;
+				}
+				case {{{P}}}C_DataType_MatchSettings: MediaType = CDataFileMgr::EMediaType::MatchSettings;
+				default: MediaType = CDataFileMgr::EMediaType::Image;
+			}
+			{{{P}}}G_Browsers[_BrowserType].Files[Type].TaskResultList = DataFileMgr.Media_GetFilteredGameList(
+				MediaType,
+				BrowserFilter,
+				_Path,
+				CurrentBrowser.IsFlatten,
+				CurrentBrowser.IsSortingByNameElseByDate,
+				CurrentBrowser.IsSortingFromAscendingOrder
+			);
+		}
+	}
+}
+
+Void {{{P}}}FetchLocalData(Integer _BrowserType) {
+	{{{P}}}FetchLocalData(_BrowserType, {{{P}}}GetFullPath(_BrowserType));
+}
+
+Void {{{P}}}SetParentPathToCurrentPath(Integer _BrowserType) {
+	if (
+		!{{{P}}}G_Browsers.existskey(_BrowserType) ||
+		{{{P}}}G_Browsers[_BrowserType].CurrentPath == {{{P}}}C_Path_Base
+	) return;
+
+	declare NewCurrentPath = {{{P}}}C_Path_Null;
+
+	foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+		if (PathList.exists({{{P}}}G_Browsers[_BrowserType].CurrentPath)) {
+			NewCurrentPath = ParentPath;
+			break;
+		}
+	}
+	foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+		if (PathList.exists(NewCurrentPath)) {
+			{{{P}}}G_Browsers[_BrowserType].ParentPath = ParentPath;
+			break;
+		}
+	}
+
+	if (NewCurrentPath == {{{P}}}C_Path_Null) {
+		NewCurrentPath = {{{P}}}G_Browsers[_BrowserType].ParentPath;
+
+		// Can only go back to C_Path_Base (official, club, local) if there are maps or campaigns in the data
+		if (
+			NewCurrentPath == {{{P}}}C_Path_Base &&
+			!{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map) &&
+			!{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Campaign)
+		) {
+			NewCurrentPath = "";
+		}
+
+		{{{P}}}G_Browsers[_BrowserType].CurrentPath = NewCurrentPath;
+
+		if (NewCurrentPath == {{{P}}}C_Path_Base) {
+			if ({{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map) || {{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Campaign)) {
+				{{{P}}}FetchLiveData(_BrowserType);
+			}
+		} else if (NewCurrentPath == "") {
+			{{{P}}}G_Browsers[_BrowserType].ParentPath = {{{P}}}C_Path_Base;
+			{{{P}}}FetchLocalData(_BrowserType);
+		} else {
+			declare Text CurrentPath = {{{P}}}TL::Replace({{{P}}}G_Browsers[_BrowserType].CurrentPath, "\\", "/");
+			declare Text[] TmpSplit = {{{P}}}TL::Split("/", CurrentPath);
+			declare Rem = TmpSplit.removekey(TmpSplit.count-1);
+			{{{P}}}G_Browsers[_BrowserType].ParentPath = {{{P}}}TL::Join("/", TmpSplit);
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+
+		if (_BrowserType == {{{P}}}G_Type_CurrentBrowser) {
+			{{{P}}}SetPathLabelValue(_BrowserType, {{{P}}}G_Browsers[_BrowserType].CurrentPath);
+		}
+	} else {
+		if (NewCurrentPath == {{{P}}}C_Path_Monthly) {
+			{{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+				Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+			};
+		} else if (NewCurrentPath == {{{P}}}C_Path_Quarterly) {
+			{{{P}}}G_Browsers[_BrowserType].ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+				Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+			};
+		} else if (NewCurrentPath == {{{P}}}C_Path_Clubs) {
+			{{{P}}}G_Browsers[_BrowserType].ChosenClubId = {{{ClubStruct::P}}}C_ClubNullId;
+		}
+	
+		{{{P}}}G_Browsers[_BrowserType].CurrentPath = NewCurrentPath;
+		{{{P}}}SetPathLabelValue(_BrowserType, {{{P}}}G_Browsers[_BrowserType].CurrentPath);
+
+		{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount({{{P}}}G_Type_CurrentBrowser));
+	}
+}
+
+Void {{{P}}}ResetBrowserCampaignsAndClubId(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+
+	{{{P}}}G_Browsers[_BrowserType].ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+		Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+	};
+	{{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+		Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+	};
+	{{{P}}}G_Browsers[_BrowserType].ChosenClubId = {{{ClubStruct::P}}}C_ClubNullId;
+}
+
+
+Void {{{P}}}RefreshBrowserData() {
+
+	DataFileMgr.Map_RefreshFromDisk();
+	DataFileMgr.Replay_RefreshFromDisk();
+
+	{{{P}}}FetchLocalData({{{P}}}G_Type_CurrentBrowser);
+}
+
+Void {{{P}}}SetCurrentPath(Integer _BrowserType, Text _Path) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	
+	{{{P}}}G_Browsers[_BrowserType].CurrentPath = _Path;
+	foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+		if (PathList.exists(_Path)) {
+			{{{P}}}G_Browsers[_BrowserType].ParentPath = ParentPath;
+			break;
+		}
+	}
+
+	switch (_Path) {
+		case {{{P}}}C_Path_Base: {
+			if ({{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map) || {{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Campaign)) {
+				{{{P}}}FetchLiveData(_BrowserType);
+			}
+		}
+		case {{{P}}}C_Path_Officials: {
+			if ({{{P}}}G_Browsers[_BrowserType].BasePath == {{{P}}}C_Path_Officials) {
+				{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns = True;
+				{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns = True;
+				{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+			}
+		}
+		case {{{P}}}C_Path_Monthly: {
+			if ({{{P}}}G_Browsers[_BrowserType].BasePath == {{{P}}}C_Path_Monthly) {
+				{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns = True;
+				{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+			}
+			{{{P}}}G_Browsers[_BrowserType].ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+				Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+			};
+			{{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+				Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+			};
+		}
+		case {{{P}}}C_Path_Quarterly: {
+			if ({{{P}}}G_Browsers[_BrowserType].BasePath == {{{P}}}C_Path_Quarterly) {
+				{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns = True;
+				{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+			}
+			{{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+				Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+			};
+			{{{P}}}G_Browsers[_BrowserType].ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+				Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+			};
+		}
+		case {{{P}}}C_Path_Clubs: {
+			if ({{{P}}}G_Browsers[_BrowserType].BasePath == {{{P}}}C_Path_Clubs) {
+				{{{P}}}G_RequestsManager.WaitingForClubs = True;
+				{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+			}
+			{{{P}}}G_Browsers[_BrowserType].ChosenClubId = {{{ClubStruct::P}}}C_ClubNullId;
+		}
+		case {{{P}}}C_Path_ChosenClub: {
+			{{{P}}}G_RequestsManager.WaitingForClubCampaigns = True;
+			{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+			{{{P}}}G_Browsers[_BrowserType].ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+				Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+			};
+		}
+		default: {
+			if (_Path == "" || _Path == {{{P}}}C_Path_Local) {
+				{{{P}}}G_Browsers[_BrowserType].ParentPath = {{{P}}}C_Path_Base;
+				{{{P}}}G_Browsers[_BrowserType].CurrentPath = "";
+				{{{P}}}ResetBrowserCampaignsAndClubId(_BrowserType);
+			} else {
+				declare Text CurrentPath = {{{P}}}TL::Replace({{{P}}}G_Browsers[_BrowserType].CurrentPath, "\\", "/");
+				declare Text[] TmpSplit = {{{P}}}TL::Split("/", CurrentPath);
+				declare Rem = TmpSplit.removekey(TmpSplit.count-1);
+				{{{P}}}G_Browsers[_BrowserType].ParentPath = {{{P}}}TL::Join("/", TmpSplit);
+			}
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+	}
+
+	if (_BrowserType == {{{P}}}G_Type_CurrentBrowser) {
+		{{{P}}}SetPathLabelValue(_BrowserType, {{{P}}}G_Browsers[_BrowserType].CurrentPath);
+	}
+}
+
+Boolean {{{P}}}IsBasePath(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return False;
+	return {{{P}}}G_Browsers[_BrowserType].CurrentPath == {{{P}}}G_Browsers[_BrowserType].BasePath;
+}
+
+Void {{{P}}}ResetPathToBasePath(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	{{{P}}}SetCurrentPath(_BrowserType, {{{P}}}G_Browsers[_BrowserType].BasePath);
+}
+
+Text {{{P}}}GetCurrentPath(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return "";
+	return {{{P}}}G_Browsers[_BrowserType].CurrentPath;
+}
+
+Void {{{P}}}UpdateBrowserTitle(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	declare CMlLabel Label_Title <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}label-title") as CMlLabel);
+	Label_Title.Value = {{{P}}}G_Browsers[_BrowserType].Name;
+}
+Void {{{P}}}UpdateBrowserSubTitle(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	declare CMlLabel Label_Title <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}label-sub-title") as CMlLabel);
+	Label_Title.Value = {{{P}}}G_Browsers[_BrowserType].SubTitle;
+}
+
+Boolean {{{P}}}IsFlatten(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return False;
+	return {{{P}}}G_Browsers[_BrowserType].IsFlatten;
+}
+
+Boolean {{{P}}}SwitchFlatten(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return False;
+
+	{{{P}}}G_Browsers[_BrowserType].IsFlatten = !{{{P}}}G_Browsers[_BrowserType].IsFlatten;
+
+	switch (_BrowserType) {
+		case {{{P}}}C_BrowserType_PathNavigation: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+		case {{{P}}}C_BrowserType_PathNavigationSmall: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+		case {{{P}}}C_BrowserType_List: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+	}
+
+	return {{{P}}}G_Browsers[_BrowserType].IsFlatten;
+}
+
+Boolean {{{P}}}IsSortingFromAscendingOrder(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return False;
+	return {{{P}}}G_Browsers[_BrowserType].IsSortingFromAscendingOrder;
+}
+
+Boolean {{{P}}}SwitchSortOrder(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return False;
+
+	{{{P}}}G_Browsers[_BrowserType].IsSortingFromAscendingOrder = !{{{P}}}G_Browsers[_BrowserType].IsSortingFromAscendingOrder;
+
+	switch (_BrowserType) {
+		case {{{P}}}C_BrowserType_PathNavigation: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+		case {{{P}}}C_BrowserType_PathNavigationSmall: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+		case {{{P}}}C_BrowserType_List: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+	}
+
+	return {{{P}}}G_Browsers[_BrowserType].IsSortingFromAscendingOrder;
+}
+
+Boolean {{{P}}}IsSortingByNameElseByDate(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return False;
+	return {{{P}}}G_Browsers[_BrowserType].IsSortingByNameElseByDate;
+}
+
+Boolean {{{P}}}SwitchSortCriterion(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return False;
+
+	{{{P}}}G_Browsers[_BrowserType].IsSortingByNameElseByDate = !{{{P}}}G_Browsers[_BrowserType].IsSortingByNameElseByDate;
+
+	switch (_BrowserType) {
+		case {{{P}}}C_BrowserType_PathNavigation: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+		case {{{P}}}C_BrowserType_PathNavigationSmall: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+		case {{{P}}}C_BrowserType_List: {
+			{{{P}}}FetchLocalData(_BrowserType);
+		}
+	}
+
+	return {{{P}}}G_Browsers[_BrowserType].IsSortingByNameElseByDate;
+}
+
+Void {{{P}}}OpenExplorer(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	declare CurrentPath = {{{P}}}TL::Replace({{{P}}}G_Browsers[_BrowserType].CurrentPath, "/", "\\");
+
+	// @TODO Handle the different versions of path in issue about "//" and "\"
+	foreach (Type in {{{P}}}G_Browsers[_BrowserType].DataTypes) {
+		switch (Type) {
+			case {{{P}}}C_DataType_Image: {
+				ParentApp.OpenFileInExplorer("Media\\Images\\"^CurrentPath);
+			}
+			case {{{P}}}C_DataType_Skin: {
+				ParentApp.OpenFileInExplorer("Skins\\"^CurrentPath);
+			}
+			case {{{P}}}C_DataType_Map: {
+				ParentApp.OpenFileInExplorer("Maps\\"^CurrentPath);
+			}
+			case {{{P}}}C_DataType_Replay: {
+				ParentApp.OpenFileInExplorer("Replays\\"^CurrentPath);
+			}
+			case {{{P}}}C_DataType_Script: {
+				ParentApp.OpenFileInExplorer("Scripts\\"^CurrentPath);
+			}
+			case {{{P}}}C_DataType_MatchSettings: {
+				ParentApp.OpenFileInExplorer("Maps\\MatchSettings\\"^CurrentPath);
+			}
+		}
+	}
+}
+
+Void {{{P}}}InitializeOptions(Integer _BrowserType) {
+	declare Frame_Options <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-options") as CMlFrame);
+
+	declare IsSortedFromAscendingOrder = {{{P}}}IsSortingFromAscendingOrder(_BrowserType);
+	declare IsSortedByNameElseByDate = {{{P}}}IsSortingByNameElseByDate(_BrowserType);
+	declare IsFlatten = {{{P}}}IsFlatten(_BrowserType);
+
+	foreach (Control in Frame_Options.Controls) {
+		if (!(Control is CMlFrame)) continue;
+		declare Frame_Option = (Control as CMlFrame);
+		declare Quad_Image = (Frame_Option.GetFirstChild("{{{P}}}quad-image") as CMlQuad);
+		if (Quad_Image == Null) continue;
+		
+		switch (Frame_Option.ControlId) {
+			case "{{{P}}}frame-options-refresh": {
+				Quad_Image.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Refresh}}}");
+			}
+			case "{{{P}}}frame-options-order": {
+				Quad_Image.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Order}}}");
+				if (IsSortedFromAscendingOrder) {
+					Quad_Image.RelativeRotation = 180.;
+				} else {
+					Quad_Image.RelativeRotation = 0.;
+				}
+			}
+			case "{{{P}}}frame-options-criterion": {
+				if (IsSortedByNameElseByDate) {
+					Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Criterion_Alpha}}}";
+				} else {
+					Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Criterion_Date}}}";
+				}
+			}
+			case "{{{P}}}frame-options-flatten": {
+				if (IsFlatten) {
+					Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Flatten_Files}}}";
+				} else {
+					Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Flatten_Arbo}}}";
+				}
+			}
+			case "{{{P}}}frame-options-explorer": {
+				Quad_Image.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Explorer}}}");
+			}
+		}
+	}
+}
+
+Void {{{P}}}UpdateBrowser(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+
+	if (
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map) ||
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Replay) ||
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Image) ||
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Skin) ||
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Script) ||
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_MatchSettings)
+	) {
+		{{{P}}}FetchLocalData(_BrowserType);
+	}
+	if (
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map) || 
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Campaign) ||
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_MonthlyCampaign)
+	) {
+		{{{P}}}FetchLiveData(_BrowserType);
+	}
+
+	{{{P}}}SetPathLabelValue(_BrowserType, {{{P}}}G_Browsers[_BrowserType].CurrentPath);
+	{{{P}}}UpdateBrowserTitle(_BrowserType);
+	{{{P}}}UpdateBrowserSubTitle(_BrowserType);
+	{{{P}}}InitializeOptions(_BrowserType);
+	{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount(_BrowserType));
+}
+
+Void CheckSettings(Integer _BrowserType, {{{P}}}K_Settings _Settings, Integer[] _DataTypes) {
+	assert(!_Settings.ListMultiSelect || !_Settings.DisplayEditorSettingsButton, "ListMultiSelect and DisplayEditorSettingsButton cannot be active at the same time");
+	assert(!_Settings.ListMultiSelect || (_DataTypes.count == 1 && _DataTypes.containsonly({{{P}}}C_DataType_CanBeMultiSelect))); //< Multi selection works only if the browser has one data type
+	assert(!_Settings.DisplayEditorSettingsButton || _BrowserType == {{{P}}}C_BrowserType_PathNavigationSmall, "DisplayEditorSettingsButton can only be activated with browser type PathNavigationSmall");
+}
+
+Void {{{P}}}AddBrowser(
+	Integer _BrowserType,
+	Text _BrowserName,
+	Text _BrowserSubTitle,
+	Integer[] _DataTypes,
+	Text _BasePath,
+	Text _StartPath,
+	CTaskResult_MapList _TaskResultMapList,
+	CTaskResult_ReplayList _TaskResultReplayList,
+	CTaskResult_FileList[Integer] _TaskResultFileLists,
+	Boolean _IsFlatten,
+	Boolean _IsSortingFromAscendingOrder,
+	Boolean _IsSortingByNameElseByDate,
+	{{{P}}}K_Settings _Settings
+) {
+	CheckSettings(_BrowserType, _Settings, _DataTypes);
+
+	declare {{{P}}}K_TaskResult_FileData[Integer] Files;
+	foreach (DataType in _DataTypes) {
+		if (!{{{P}}}C_DataType_IsFileList.exists(DataType)) continue;
+		Files[DataType] = {{{P}}}K_TaskResult_FileData{};
+		if (!_TaskResultFileLists.existskey(DataType)) continue;
+		Files[DataType].TaskResultList = _TaskResultFileLists[DataType];
+	}
+
+	{{{P}}}G_Browsers[_BrowserType] = {{{P}}}K_Browser {
+		Type = _BrowserType,
+		Name = _BrowserName,
+		SubTitle = _BrowserSubTitle,
+		DataTypes = _DataTypes,
+		BasePath = _BasePath,
+		ParentPath = "",
+		CurrentPath = "",
+		ChosenClubId = {{{ClubStruct::C_ClubNullId}}},
+		ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+			Id = {{{CampaignStruct::C_Campaign_NullId}}}
+		},
+		ChosenMonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+			Id = {{{CampaignStruct::C_Campaign_NullId}}}
+		},
+		Files = Files,
+		IsFlatten = _IsFlatten,
+		IsSortingFromAscendingOrder = _IsSortingFromAscendingOrder,
+		IsSortingByNameElseByDate = _IsSortingByNameElseByDate,
+		Settings = _Settings,
+		SelectedReplays = [],
+		SelectedMaps = []
+	};
+	{{{P}}}SetCurrentPath(_BrowserType, _StartPath);
+	{{{P}}}UpdateBrowserTitle(_BrowserType);
+	{{{P}}}UpdateBrowserSubTitle(_BrowserType);
+	{{{P}}}InitializeOptions(_BrowserType);
+}
+
+Void {{{P}}}AddBrowser(Integer _BrowserType, Text _BrowserName, Text _BrowserSubTitle, Integer[] _DataTypes, Text _StartPath, {{{P}}}K_Settings _Settings) {
+	{{{P}}}AddBrowser(_BrowserType, _BrowserName, _BrowserSubTitle, _DataTypes, "", _StartPath, Null, Null, [], False, False, False, _Settings);
+}
+
+Void {{{P}}}UpdateBrowserDataTypes(Integer _BrowserType, Integer[] _DataTypes) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	assert(!{{{P}}}G_Browsers[_BrowserType].Settings.ListMultiSelect || (_DataTypes.count == 1 && _DataTypes.containsonly({{{P}}}C_DataType_CanBeMultiSelect))); //< Multi selection works only if the browser has one data type
+	{{{P}}}G_Browsers[_BrowserType].DataTypes = _DataTypes;
+	{{{P}}}G_Browsers[_BrowserType].Files = [];
+	{{{P}}}G_Browsers[_BrowserType].SelectedReplays = [];
+	{{{P}}}G_Browsers[_BrowserType].SelectedMaps = [];
+	foreach (DataType in _DataTypes) {
+		if (!{{{P}}}C_DataType_IsFileList.exists(DataType)) continue;
+		{{{P}}}G_Browsers[_BrowserType].Files[DataType] = {{{P}}}K_TaskResult_FileData{};
+	}
+}
+
+Void {{{P}}}UpdateBrowserName(Integer _BrowserType, Text _Name) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	{{{P}}}G_Browsers[_BrowserType].Name = _Name;
+}
+Void {{{P}}}UpdateBrowserSubTitle(Integer _BrowserType, Text _SubTitle) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	{{{P}}}G_Browsers[_BrowserType].SubTitle = _SubTitle;
+}
+Void {{{P}}}UpdateBrowserBasePath(Integer _BrowserType, Text _BasePath) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+	{{{P}}}G_Browsers[_BrowserType].BasePath = _BasePath;
+}
+
+Void {{{P}}}CreateOrUpdateBrowser(Integer _BrowserType, Text _BrowserName, Text _BrowserSubTitle, Integer[] _DataTypes, Text _StartPath, {{{P}}}K_Settings _Settings) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) {
+		{{{P}}}AddBrowser(_BrowserType, _BrowserName, _BrowserSubTitle, _DataTypes, _StartPath, _Settings);
+	} else {
+		CheckSettings(_BrowserType, _Settings, _DataTypes);
+		{{{P}}}G_Browsers[_BrowserType].Settings = _Settings;
+		{{{P}}}UpdateBrowserDataTypes(_BrowserType, _DataTypes);
+		{{{P}}}UpdateBrowserName(_BrowserType, _BrowserName);
+		{{{P}}}UpdateBrowserSubTitle(_BrowserType, _BrowserSubTitle);
+		{{{P}}}SetCurrentPath(_BrowserType, _StartPath);
+		{{{P}}}UpdateBrowserTitle(_BrowserType);
+		{{{P}}}UpdateBrowserSubTitle(_BrowserType);
+		{{{P}}}InitializeOptions(_BrowserType);
+	}
+}
+
+{{{CampaignStruct::P}}}K_Campaign {{{P}}}GetCampaign(Integer _BrowserType, Integer _DataKey) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) {
+		return {{{CampaignStruct::P}}}K_Campaign {
+			Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+		};
+	}
+
+	declare Campaign = {{{CampaignStruct::P}}}K_Campaign {
+		Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+	};
+
+	switch ({{{P}}}G_Browsers[_BrowserType].CurrentPath) {
+		case {{{P}}}C_Path_Quarterly: {
+			declare CampaignList = {{{CampaignStore::P}}}GetCampaignList({{{CampaignStruct::P}}}C_CampaignType_Quarterly);
+			if (CampaignList.existskey(_DataKey)) {
+				Campaign = CampaignList[_DataKey];
+				if (Campaign.IsLoaded) {
+					Campaign = {{{CampaignStore::P}}}GetCampaignFromId(Campaign.Id);
+				}
+			}
+		}
+		case {{{P}}}C_Path_ChosenClub: {
+			declare CampaignList = {{{CampaignStore::P}}}GetClubCampaignList({{{P}}}G_Browsers[_BrowserType].ChosenClubId);
+			if (CampaignList.existskey(_DataKey)) {
+				Campaign = CampaignList[_DataKey];
+				if (Campaign.IsLoaded) {
+					Campaign = {{{CampaignStore::P}}}GetCampaignFromId(Campaign.Id);
+				}
+			}
+		}
+		default: {
+			if ({{{P}}}G_Browsers[_BrowserType].Campaigns.existskey(_DataKey)) {
+				return {{{P}}}G_Browsers[_BrowserType].Campaigns[_DataKey];
+			}
+		}
+	}
+
+	return Campaign;
+}
+
+{{{CampaignStruct::P}}}K_MonthlyCampaign {{{P}}}GetMonthlyCampaign(Integer _DataKey) {
+	declare MonthlyCampaignList = {{{CampaignStore::P}}}GetMonthlyCampaignList();
+	declare MonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+		Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+	}; 
+
+	if (MonthlyCampaignList.existskey(_DataKey)) {
+		MonthlyCampaign = {{{CampaignStore::P}}}GetMonthlyCampaignFromId(MonthlyCampaignList[_DataKey].Id);
+		if (!MonthlyCampaign.IsLoaded) {
+			MonthlyCampaign = MonthlyCampaignList[_DataKey];
+		}
+	}
+	return MonthlyCampaign;
+}
+
+{{{ClubStruct::P}}}K_Club {{{P}}}GetClub(Integer _BrowserType, Integer _DataKey) {
+
+	declare Clubs = {{{ClubStore::P}}}GetBrowserClubs();
+	if (Clubs.existskey(_DataKey)) return Clubs[_DataKey];
+
+	return {{{ClubStruct::P}}}K_Club {
+		Id = {{{ClubStruct::P}}}C_ClubNullId
+	};
+}
+
+{{{P}}}K_MapBrowserData {{{P}}}GetMapBrowserData(Integer _BrowserType, Integer _DataKey) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType) || !{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map)) return {{{P}}}K_MapBrowserData{};
+
+	if ({{{P}}}G_Browsers[_BrowserType].ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+		declare MapCount = 0;
+		declare {{{CampaignStruct::P}}}K_Map ChosenMap;
+		foreach (Category in {{{P}}}G_Browsers[_BrowserType].ChosenCampaign.Categories) {
+			if (Category.Playlist.count + MapCount <= _DataKey) {
+				MapCount += Category.Playlist.count;
+				continue;
+			} else {
+				if (Category.Playlist.existskey(_DataKey - MapCount)) ChosenMap = Category.Playlist[_DataKey - MapCount];
+				if (ChosenMap.Uid != "") break;
+			}
+		}
+		
+		return {{{P}}}K_MapBrowserData{
+			MapInfo = ChosenMap
+		};
+	} else if ({{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+		// DailyMaps have a day index and not a key like other map arrays
+		declare Integer Key;
+		foreach (DayIndex => DailyMap in {{{P}}}G_Browsers[_BrowserType].ChosenMonthlyCampaign.DailyMaps) {
+			if (Key == _DataKey) {
+				return {{{P}}}K_MapBrowserData {
+					MapInfo = DailyMap.Map
+				};
+				break;
+			}
+			Key += 1;
+		}
+	} else if ({{{P}}}G_Browsers[_BrowserType].Maps.existskey(_DataKey)) {
+		return {{{P}}}G_Browsers[_BrowserType].Maps[_DataKey];
+	}
+
+	return {{{P}}}K_MapBrowserData {};
+}
+
+{{{P}}}K_ReplayBrowserData {{{P}}}GetReplayBrowserData(Integer _BrowserType, Integer _DataKey) {
+	if (
+		!{{{P}}}G_Browsers.existskey(_BrowserType) ||
+		!{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Replay) ||
+		!{{{P}}}G_Browsers[_BrowserType].Replays.existskey(_DataKey)
+	) return {{{P}}}K_ReplayBrowserData{};
+	
+	return {{{P}}}G_Browsers[_BrowserType].Replays[_DataKey];
+}
+
+{{{P}}}K_FileBrowserData {{{P}}}GetFileBrowserData(Integer _BrowserType, Integer _DataKey) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return {{{P}}}K_FileBrowserData{};
+
+	foreach (DataType => File in {{{P}}}G_Browsers[_BrowserType].Files) {
+		if (File.Datas.existskey(_DataKey)) return File.Datas[_DataKey];
+	}
+	return {{{P}}}K_FileBrowserData{};
+}
+
+Integer[] {{{P}}}GetBrowserDataTypes(Integer _BrowserType) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return [];
+	return {{{P}}}G_Browsers[_BrowserType].DataTypes;
+}
+
+Void {{{P}}}UpdateMultiSelectButtons(CMlFrame _Button_ListMultiSelectValid) {
+	if ({{{Navigation::P}}}IsLocked(_Button_ListMultiSelectValid)) {
+		{{{Button::P}}}SetBgColor(_Button_ListMultiSelectValid, {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenTwo}}}"));
+	} else {
+		{{{Button::P}}}SetBgColor(_Button_ListMultiSelectValid, {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}"));
+	}
+}
+
+Void {{{P}}}UpdateMapPreselection({{{P}}}K_MapBrowserData _MapBrowserData, CMlFrame _Frame_SelectedMap) {
+	{{{P}}}G_PreSelectedMapBrowserData = _MapBrowserData;
+
+	(_Frame_SelectedMap.GetFirstChild("{{{P}}}label-map") as CMlLabel).SetText({{{P}}}G_PreSelectedMapBrowserData.MapInfo.Name);
+	declare Text AuthorName;
+	if ({{{P}}}G_PreSelectedMapBrowserData.MapInfo.AuthorDisplayName != "") {
+		//L16N %1 will be replaced by the name of the author of the map, e.g. "by Darrek"
+		AuthorName = {{{P}}}TL::Compose(_("by %1"), {{{P}}}G_PreSelectedMapBrowserData.MapInfo.AuthorDisplayName);
+	}
+	(_Frame_SelectedMap.GetFirstChild("{{{P}}}label-author") as CMlLabel).SetText(AuthorName);
+	(_Frame_SelectedMap.GetFirstChild("{{{P}}}quad-thumbnail") as CMlQuad).ChangeImageUrl({{{P}}}G_PreSelectedMapBrowserData.MapInfo.ThumbnailUrl);
+	declare CMlFrame Button_EditorSettings <=> (_Frame_SelectedMap.GetFirstChild("{{{P}}}button-editor-settings") as CMlFrame);
+	declare CMlControl Button_SelectMap = _Frame_SelectedMap.GetFirstChild("{{{P}}}button-select-map");
+
+	Button_SelectMap.Visible = {{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser) && !{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.ListMultiSelect && !{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Skin);
+
+	Button_EditorSettings.Visible = (
+		Button_SelectMap.Visible &&
+		{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.DisplayEditorSettingsButton &&
+		_MapBrowserData.MapInfo.Uid != ""
+	);
+
+	{{{Navigation::P}}}Lock(Button_SelectMap, !Button_SelectMap.Visible || _MapBrowserData.MapInfo.Uid == "");
+	{{{Navigation::P}}}Lock(Button_EditorSettings, !Button_EditorSettings.Visible);
+	{{{P}}}UpdateMultiSelectButtons((Button_SelectMap as CMlFrame));
+}
+
+Void {{{P}}}SetCurrentBrowserScroll(Integer _BrowserType) {
+	declare Frame_NavBrowserScroll <=> {{{P}}}G_Frame_Global.Parent;
+	declare Frame_BrowserMapScroll <=> (Frame_NavBrowserScroll.GetFirstChild("{{{P}}}frame-browser-map-scroll") as CMlFrame);
+	declare Frame_BrowserTestMapScroll <=> (Frame_NavBrowserScroll.GetFirstChild("{{{P}}}frame-browser-small-map-scroll") as CMlFrame);
+	declare Frame_BrowserListScroll <=> (Frame_NavBrowserScroll.GetFirstChild("{{{P}}}frame-browser-list-scroll") as CMlFrame);
+
+	declare Frame_ButtonCreateMap <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}button-create-map") as CMlFrame);
+	declare Frame_SelectedMap <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-selected-map") as CMlFrame);
+	declare Frame_ButtonSelectMap <=> (Frame_SelectedMap.GetFirstChild("{{{P}}}button-select-map") as CMlFrame);
+	declare Button_EditorSettings <=> (Frame_SelectedMap.GetFirstChild("{{{P}}}button-editor-settings") as CMlFrame);
+	declare Frame_ParentPath <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-parent-path") as CMlFrame);
+
+	declare Frame_SelectedSkin <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-selected-skin") as CMlFrame);
+
+	declare Frame_Tooltip <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-tooltip") as CMlFrame);
+	declare Label_Tooltip <=> (Frame_Tooltip.GetFirstChild("{{{P}}}label-tooltip") as CMlLabel);
+	
+	declare Frame_ListButtons <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-list-buttons") as CMlFrame);
+	declare Button_ListMultiSelectValid <=> (Frame_ListButtons.GetFirstChild("{{{P}}}button-list-multi-select-valid") as CMlFrame);
+	declare Button_ListMultiSelectSelectAll <=> (Frame_ListButtons.GetFirstChild("{{{P}}}button-list-multi-select-select-all") as CMlFrame);
+	declare Button_ListMultiSelectunselectAll <=> (Frame_ListButtons.GetFirstChild("{{{P}}}button-list-multi-select-unselect-all") as CMlFrame);
+	
+	{{{Scroll::P}}}Display(Frame_BrowserMapScroll, _BrowserType == {{{P}}}C_BrowserType_PathNavigation);
+	{{{Scroll::P}}}Display(Frame_BrowserTestMapScroll, _BrowserType == {{{P}}}C_BrowserType_PathNavigationSmall);
+	{{{Scroll::P}}}Display(Frame_BrowserListScroll, _BrowserType == {{{P}}}C_BrowserType_List);
+	if (Frame_BrowserMapScroll.Visible) {
+		{{{P}}}G_Frame_CurrentScroll = Frame_BrowserMapScroll;
+	} else if (Frame_BrowserTestMapScroll.Visible) {
+		{{{P}}}G_Frame_CurrentScroll = Frame_BrowserTestMapScroll;
+	} else if (Frame_BrowserListScroll.Visible) {
+		{{{P}}}G_Frame_CurrentScroll = Frame_BrowserListScroll;
+	}
+	{{{P}}}G_Type_CurrentBrowser = _BrowserType;
+
+	Frame_SelectedMap.Visible = Frame_BrowserTestMapScroll.Visible && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map);
+	Frame_SelectedSkin.Visible = Frame_BrowserTestMapScroll.Visible && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Skin);
+
+	{{{Navigation::P}}}ChangeControlTarget(Frame_ButtonCreateMap, "up", {{{P}}}G_Frame_CurrentScroll.ControlId);
+	{{{Navigation::P}}}ChangeControlTarget(Frame_ButtonSelectMap, "up", {{{P}}}G_Frame_CurrentScroll.ControlId);
+	{{{Navigation::P}}}ChangeControlTarget(Button_EditorSettings, "left", {{{P}}}G_Frame_CurrentScroll.ControlId);
+	{{{Navigation::P}}}ChangeControlTarget(Button_ListMultiSelectValid, "up", {{{P}}}G_Frame_CurrentScroll.ControlId);
+	{{{Navigation::P}}}ChangeControlTarget(Button_ListMultiSelectSelectAll, "down", {{{P}}}G_Frame_CurrentScroll.ControlId);
+	{{{Navigation::P}}}ChangeControlTarget(Button_ListMultiSelectunselectAll, "down", {{{P}}}G_Frame_CurrentScroll.ControlId);
+	if ({{{P}}}G_Browsers.existskey(_BrowserType)) {
+		Frame_ButtonCreateMap.Visible = {{{P}}}G_Browsers[_BrowserType].Settings.DisplayCreateMapButton && {{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Map);
+		{{{Navigation::P}}}Lock(Frame_ButtonCreateMap, !Frame_ButtonCreateMap.Visible);
+		Frame_ButtonSelectMap.Hide();
+		{{{Navigation::P}}}Lock(Frame_ButtonSelectMap, True);
+		Button_EditorSettings.Visible = False;
+		{{{Navigation::P}}}Lock(Button_EditorSettings, True);
+		{{{P}}}UpdateMapPreselection({{{P}}}K_MapBrowserData {}, Frame_SelectedMap);
+		Frame_Tooltip.Visible = {{{P}}}G_Browsers[_BrowserType].Settings.DisplayFileNameTooltip;
+		if (Frame_Tooltip.Visible) {
+			switch ({{{P}}}G_Browsers[_BrowserType].Settings.PositionFileNameTooltip) {
+				case {{{P}}}C_TooltipPos_ScrollTop: {
+					Frame_Tooltip.RelativePosition_V3 = <5.5, 28.>;
+					Label_Tooltip.TextSizeReal = 4.;
+				}
+				default: { // {{{P}}}C_TooltipPos_Footer
+					Frame_Tooltip.RelativePosition_V3 = <-12., -69.>;
+					Label_Tooltip.TextSizeReal = 5.;
+				}
+			}
+		}
+		
+		Frame_ListButtons.Visible = (Frame_BrowserListScroll.Visible || Frame_BrowserTestMapScroll.Visible) && {{{P}}}G_Browsers[_BrowserType].Settings.ListMultiSelect;
+		{{{Navigation::P}}}Lock(Button_ListMultiSelectValid, True);
+		{{{Navigation::P}}}Lock(Button_ListMultiSelectSelectAll, !Frame_ListButtons.Visible);
+		{{{Navigation::P}}}Lock(Button_ListMultiSelectunselectAll, !Frame_ListButtons.Visible);
+		{{{P}}}UpdateMultiSelectButtons(Button_ListMultiSelectValid);
+		{{{P}}}UpdateMultiSelectButtons(Frame_ButtonSelectMap);
+		
+		Frame_ButtonCreateMap.RelativePosition_V3 = <45., -68.5>;
+		if (Frame_ListButtons.Visible) {
+			{{{Navigation::P}}}ChangeControlTarget(Frame_ButtonCreateMap, "right", Button_ListMultiSelectValid.ControlId);
+		} else if (Frame_SelectedMap.Visible) {
+			{{{Navigation::P}}}ChangeControlTarget(Frame_ButtonCreateMap, "right", Frame_ButtonSelectMap.ControlId);
+		} else {
+			Frame_ButtonCreateMap.RelativePosition_V3 = <93.5, -68.5>;
+		}
+	}
+}
+
+Void {{{P}}}SetCurrentBrowser(Integer _Type, Text _Name, Text _SubTitle, Integer[] _DataTypes, Text _StartPath, {{{P}}}K_Settings _Settings) {
+	{{{P}}}CreateOrUpdateBrowser(_Type, _Name, _SubTitle, _DataTypes, _StartPath, _Settings);
+	{{{P}}}SetCurrentBrowserScroll(_Type);
+	{{{P}}}FocusBrowser(True);
+}
+Void {{{P}}}SetCurrentBrowser(Integer _Type, Text _Name, Integer[] _DataTypes, Text _StartPath, {{{P}}}K_Settings _Settings) {
+	{{{P}}}SetCurrentBrowser(_Type, _Name, "", _DataTypes, _StartPath, _Settings);
+}
+Void {{{P}}}SetCurrentBrowser(Integer _Type, Text _Name, Integer[] _DataTypes, Text _StartPath) {
+	{{{P}}}SetCurrentBrowser(_Type, _Name, "", _DataTypes, _StartPath, {{{P}}}GetDefaultSettings());
+}
+
+CMlFrame {{{P}}}GetCurrentFrameBrowserScroll() {
+	return {{{P}}}G_Frame_CurrentScroll;
+}
+
+Void {{{P}}}UpdateBrowserElement(CMlFrame _Frame_Element, Integer _DataKey) {
+	if (_Frame_Element == Null) return;
+	declare DataTypeElement = {{{P}}}GetDataType({{{P}}}G_Type_CurrentBrowser, _DataKey);
+	declare {{{P}}}K_BrowserElement BrowserElementData;
+	if ({{{P}}}C_DataType_NameList.existskey(DataTypeElement)) BrowserElementData.TypeName = {{{P}}}C_DataType_NameList[DataTypeElement];
+
+	declare Boolean IsSubfolder for _Frame_Element;
+	switch (DataTypeElement) {
+		case {{{P}}}C_DataType_Campaign: {
+			declare Campaign = {{{P}}}GetCampaign({{{P}}}G_Type_CurrentBrowser, _DataKey);
+			BrowserElementData.Name = Campaign.Name;
+			declare Text[Integer] MissingConditions;
+			declare MapNumber = 0;
+			declare UnplayableMap = 0;
+			foreach (Category in Campaign.Categories) {
+				foreach (Map in Category.Playlist) {
+					if (Map.Name != ""){
+						MapNumber += 1;
+						if (!Map.IsPlayable) UnplayableMap += 1;
+					}
+				}
+			}
+			if (MapNumber < 1) MissingConditions[0] = "{{{C_Text_Map}}}";
+			if (UnplayableMap >= 1) {
+				declare Text Validation;
+				if (UnplayableMap > 1){
+					Validation = {{{P}}}TL::GetTranslatedText("{{{C_Text_Validations}}}");
+				} else {
+					Validation = {{{P}}}TL::GetTranslatedText("{{{C_Text_Validation}}}");
+				}
+				MissingConditions[1] = (UnplayableMap^" "^Validation);
+			}
+			if (Campaign.Name == "") MissingConditions[2] = "{{{C_Text_Name}}}";
+			if (MapNumber < 1 || UnplayableMap >= 1 || Campaign.Name == "") {
+				BrowserElementData.Missing = {{{P}}}TL::Compose("{{{C_Text_Missing}}}", MissingConditions.get(0, ""), MissingConditions.get(1, ""), MissingConditions.get(2, ""), MissingConditions.get(3, ""));
+			}
+		}
+		case {{{P}}}C_DataType_MonthlyCampaign: {
+			declare MonthlyCampaign = {{{P}}}GetMonthlyCampaign(_DataKey);
+			if (MonthlyCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				BrowserElementData.Name = {{{P}}}TL::Compose({{{P}}}C_Month_Names[MonthlyCampaign.Month-1], {{{P}}}TL::ToText(MonthlyCampaign.Year));
+			} else {
+				BrowserElementData.Name = _("Loading");
+			}
+		}
+		case {{{P}}}C_DataType_Map: {
+			declare {{{P}}}K_MapBrowserData MapBrowserData = {{{P}}}GetMapBrowserData({{{P}}}G_Type_CurrentBrowser, _DataKey);
+			if (MapBrowserData.SubFolder != "") {
+				BrowserElementData.Name = {{{P}}}GetLastNameOfPath(MapBrowserData.SubFolder);
+				BrowserElementData.IsSubfolder = True;
+			} else {
+				BrowserElementData.Name = MapBrowserData.MapInfo.Name;
+				BrowserElementData.MapUid = MapBrowserData.MapInfo.Uid;
+			}
+		}
+		case {{{P}}}C_DataType_Category: {
+			BrowserElementData.IsSubfolder = True;
+			declare CurrentPath = {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].CurrentPath;
+			if ({{{P}}}G_Paths_Tree.existskey(CurrentPath) && {{{P}}}G_Paths_Tree[CurrentPath].existskey(_DataKey)) {
+				declare Path = {{{P}}}G_Paths_Tree[CurrentPath][_DataKey];
+				if ({{{P}}}C_Paths_Names.existskey(Path)) BrowserElementData.Name = {{{P}}}C_Paths_Names[Path];
+			}
+		}
+		case {{{P}}}C_DataType_Club: {
+			declare Club = {{{P}}}GetClub({{{P}}}G_Type_CurrentBrowser, _DataKey);
+			BrowserElementData.IsSubfolder = True;
+			BrowserElementData.Name = Club.Name;
+			BrowserElementData.File = Club.LogoUrl;
+		}
+		case {{{P}}}C_DataType_Replay: {
+			declare {{{P}}}K_ReplayBrowserData ReplayBrowserData = {{{P}}}GetReplayBrowserData({{{P}}}G_Type_CurrentBrowser, _DataKey);
+			if (ReplayBrowserData.SubFolder != "") {
+				BrowserElementData.Name = {{{P}}}GetLastNameOfPath(ReplayBrowserData.SubFolder);
+				BrowserElementData.IsSubfolder = True;
+			} else {
+				BrowserElementData.Name = {{{P}}}TL::StripFormatting(ReplayBrowserData.ReplayInfo.Name);
+			}
+			BrowserElementData.File = ReplayBrowserData.ReplayInfo.FileName;
+		}
+		default: {
+			if ({{{P}}}C_DataType_IsFileList.exists(DataTypeElement)) {
+				declare FileBrowserData = {{{P}}}GetFileBrowserData({{{P}}}G_Type_CurrentBrowser, _DataKey);
+				if (FileBrowserData.SubFolder != "") {
+					BrowserElementData.IsSubfolder = True;
+					BrowserElementData.Name = {{{P}}}GetLastNameOfPath(FileBrowserData.SubFolder);
+				} else {
+					BrowserElementData.Name = {{{P}}}GetLastNameOfPath(FileBrowserData.File);
+					BrowserElementData.File = FileBrowserData.File;
+				}
+			}
+		}
+	}
+
+	IsSubfolder = BrowserElementData.IsSubfolder;
+	if (IsSubfolder) {{{MenuSounds::P}}}SetCustomSelectSound(_Frame_Element, "BrowserFolderDive");
+	else {{{MenuSounds::P}}}SetCustomSelectSound(_Frame_Element, {{{MenuSounds::P}}}C_Sound_Select);
+
+	declare Text {{{P}}}Tooltip for _Frame_Element;
+	declare Text {{{P}}}FileName for _Frame_Element;
+	declare Text {{{P}}}FilePath for _Frame_Element;
+	{{{P}}}Tooltip = "";
+	{{{P}}}FileName = "";
+	{{{P}}}FilePath = "";
+	if (!BrowserElementData.IsSubfolder) {
+		{{{P}}}Tooltip = BrowserElementData.Name;
+		{{{P}}}FileName = BrowserElementData.Name;
+		{{{P}}}FilePath = BrowserElementData.File;
+	}
+
+	switch ({{{P}}}G_Type_CurrentBrowser) {
+		case {{{P}}}C_BrowserType_List: {
+			declare Quad_Check <=> (_Frame_Element.GetFirstChild("{{{P}}}quad-check") as CMlQuad);
+			declare Label_Name <=> (_Frame_Element.GetFirstChild("{{{P}}}label-name") as CMlLabel);
+			declare Quad_BG <=> (_Frame_Element.GetFirstChild("{{{P}}}quad-bg") as CMlQuad);
+			Label_Name.Value = BrowserElementData.Name;
+			Label_Name.Visible = True;
+			
+			if (BrowserElementData.IsSubfolder) {
+				Quad_BG.Colorize = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_Yellow}}}");
+				Quad_Check.Visible = False;
+			} else {
+				Quad_BG.Colorize = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenOne}}}");
+				Quad_Check.Visible = (
+					{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.ListMultiSelect &&
+					{{{P}}}C_DataType_CanBeMultiSelect.exists(DataTypeElement)
+				);
+			}
+
+			Label_Name.TextColor = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+			Label_Name.RelativePosition_V3.X = {{{SizeX_ListMargin}}};
+			Label_Name.Size.X = {{{Size_BrowserLists.X - SizeX_ListMargin}}} - Quad_Check.Size.X;
+
+			if (Quad_Check.Visible) {
+				if (
+					({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Replay) && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedReplays.existskey(BrowserElementData.File)) ||
+					({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map) && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps.existskey(BrowserElementData.MapUid))
+				) {
+					Quad_Check.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}");
+				} else {
+					Quad_Check.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}");
+				}
+			}
+		}
+		default: {
+			if ({{{P}}}G_Type_CurrentBrowser == {{{P}}}C_BrowserType_PathNavigation || {{{P}}}G_Type_CurrentBrowser == {{{P}}}C_BrowserType_PathNavigationSmall) {
+				declare Label_Name <=> (_Frame_Element.GetFirstChild("{{{P}}}label-name") as CMlLabel);
+				declare Quad_Image <=> (_Frame_Element.GetFirstChild("{{{P}}}quad-image") as CMlQuad);
+				declare Quad_BG <=> (_Frame_Element.GetFirstChild("{{{P}}}quad-bg") as CMlQuad);
+				declare Quad_Focus <=> (_Frame_Element.GetFirstChild("{{{P}}}quad-focus") as CMlQuad);
+				declare Quad_Check <=> (_Frame_Element.GetFirstChild("{{{P}}}quad-check") as CMlQuad);
+
+				Label_Name.Value = BrowserElementData.Name;
+				if (Quad_Check != Null) Quad_Check.Visible = False;
+				Label_Name.Visible = True;
+
+				if (BrowserElementData.IsSubfolder) {
+					Quad_BG.ChangeImageUrl("{{{Const::C_ImageUrl_ButtonBG_Folder}}}");
+					Quad_Focus.ChangeImageUrl("{{{Const::C_ImageUrl_ButtonBG_Folder}}}");
+					Quad_BG.Colorize = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_Yellow}}}");
+					Label_Name.TextColor = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+				}	else {
+					Quad_BG.ChangeImageUrl("{{{Const::C_ImageUrl_ButtonBG_File}}}");
+					Quad_Focus.ChangeImageUrl("{{{Const::C_ImageUrl_ButtonBG_File}}}");
+					Quad_BG.Colorize = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenOne}}}");
+					Label_Name.TextColor = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}");
+				}
+				switch (DataTypeElement) {
+					case {{{P}}}C_DataType_Image: {
+						Label_Name.Visible = BrowserElementData.IsSubfolder;
+						Quad_Image.Visible = !BrowserElementData.IsSubfolder;
+						if (!BrowserElementData.IsSubfolder) {
+							Quad_Image.ChangeImageUrl({{{P}}}C_BasePath^{{{P}}}C_BasePath_Media^BrowserElementData.File);
+						}
+					}
+					default: {
+						Quad_Image.Visible = False;
+
+						if (Quad_Check != Null && {{{P}}}C_DataType_CanBeMultiSelect.exists(DataTypeElement)) {
+							Quad_Check.Visible = (
+								!BrowserElementData.IsSubfolder &&
+								{{{P}}}G_Type_CurrentBrowser == {{{P}}}C_BrowserType_PathNavigationSmall &&
+								{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.ListMultiSelect
+							);
+							if (Quad_Check.Visible) {
+								if (
+									({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Replay) && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedReplays.existskey(BrowserElementData.File)) ||
+									({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map) && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps.existskey(BrowserElementData.MapUid))
+								) {
+									Quad_Check.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}");
+								} else {
+									Quad_Check.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}");
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+Void {{{P}}}LeaveBrowser() {
+	{{{P}}}DestroyScene();
+	{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns = False;
+	{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns = False;
+	{{{P}}}G_RequestsManager.WaitingForClubCampaigns  = False;
+	{{{P}}}G_RequestsManager.WaitingForClubs = False;
+	{{{P}}}G_RequestsManager.WaitingForLoadedCampaign = False;
+	{{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign = False;
+	{{{P}}}G_RequestsManager.NextPageLoadTime = -1;
+
+	{{{LoadingSpinner::P}}}StopAnimation({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-loading-spinner"));
+
+	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return;
+	{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+		Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+	};
+	{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+		Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+	};
+	{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenClubId = {{{ClubStruct::C_ClubNullId}}};
+
+	{{{P}}}PendingEvents.add({{{P}}}K_Event{
+		Type = {{{P}}}C_EventType_Cancel
+	});
+}
+
+Void {{{P}}}Cancel(Boolean _LeaveBrowser) {
+	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return;
+
+	declare CurrentBrowser = {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser];
+	if (CurrentBrowser.CurrentPath != {{{P}}}C_Path_Base) {
+		if (
+			(!CurrentBrowser.DataTypes.containsoneof({{{P}}}C_DataType_HasCloudFolder) || CurrentBrowser.Settings.DisableCloudFolder) &&
+			(CurrentBrowser.CurrentPath == {{{P}}}C_Path_Null || CurrentBrowser.CurrentPath == "" || CurrentBrowser.BasePath == CurrentBrowser.CurrentPath)
+		) {
+			if (_LeaveBrowser) {{{P}}}LeaveBrowser();
+		} else {
+			{{{P}}}SetParentPathToCurrentPath({{{P}}}G_Type_CurrentBrowser);
+		}
+	} else {
+		if (_LeaveBrowser) {{{P}}}LeaveBrowser();
+	}
+}
+
+Void {{{P}}}Private_UpdateListMultiSelect() {
+	declare CMlFrame[Integer] ElementsVisible = {{{Scroll::P}}}GetElementsVisible({{{P}}}G_Frame_CurrentScroll);
+	foreach (Key => Frame_Element in ElementsVisible) {
+		if (Frame_Element.Visible) {
+			{{{P}}}UpdateBrowserElement(Frame_Element, Key);
+		}
+	}
+	declare Button_ListMultiSelectValid <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}button-list-multi-select-valid") as CMlFrame);
+	{{{Navigation::P}}}Lock(Button_ListMultiSelectValid, (
+		{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedReplays.count <= 0 &&
+		{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps.count <= 0
+	));
+	{{{P}}}UpdateMultiSelectButtons(Button_ListMultiSelectValid);
+}
+
+Void {{{P}}}Select(CMlControl _Control) {
+	if (_Control == Null) return;
+
+	switch (_Control.ControlId){
+		case "{{{P}}}frame-options-explorer": {
+			{{{P}}}OpenExplorer({{{P}}}G_Type_CurrentBrowser);
+		}
+		case "{{{P}}}frame-options-refresh": {
+			{{{P}}}RefreshBrowserData();
+		}
+		case "{{{P}}}frame-options-order": {
+			declare IsSortedFromAscendingOrder = {{{P}}}SwitchSortOrder({{{P}}}G_Type_CurrentBrowser);
+			declare Quad_Image <=> ((_Control as CMlFrame).GetFirstChild("{{{P}}}quad-image") as CMlQuad);
+			if (Quad_Image == Null) return;
+			if (IsSortedFromAscendingOrder) {
+				Quad_Image.RelativeRotation = 180.;
+			} else {
+				Quad_Image.RelativeRotation = 0.;
+			}
+		}
+		case "{{{P}}}frame-options-criterion": {
+			declare IsSortedByNameElseByDate = {{{P}}}SwitchSortCriterion({{{P}}}G_Type_CurrentBrowser);
+			declare Quad_Image <=> ((_Control as CMlFrame).GetFirstChild("{{{P}}}quad-image") as CMlQuad);
+			if (Quad_Image == Null) return;
+			if (IsSortedByNameElseByDate) {
+				Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Criterion_Alpha}}}";
+			} else {
+				Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Criterion_Date}}}";
+			}
+		}
+		case "{{{P}}}frame-options-flatten": {
+			declare IsFlatten = {{{P}}}SwitchFlatten({{{P}}}G_Type_CurrentBrowser);
+			declare Quad_Image <=> ((_Control as CMlFrame).GetFirstChild("{{{P}}}quad-image") as CMlQuad);
+			if (Quad_Image == Null) return;
+			if (IsFlatten) {
+				Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Flatten_Files}}}";
+			} else {
+				Quad_Image.ImageUrl = "{{{Const::C_ImageUrl_Icon_Flatten_Arbo}}}";
+			}
+		}
+		case "{{{P}}}frame-parent-path": {
+			{{{P}}}Cancel(False);
+		}
+		case "{{{P}}}button-create-map": {
+			{{{P}}}PendingEvents.add({{{P}}}K_Event{
+				Type = {{{P}}}C_EventType_CreateMap
+			});
+		}
+		case "{{{P}}}button-select-map": {
+			{{{P}}}PendingEvents.add({{{P}}}K_Event{
+				Type = {{{P}}}C_EventType_ConfirmSelection,
+				DataType = {{{P}}}C_DataType_Map,
+				Data = {{{P}}}G_PreSelectedMapBrowserData.MapInfo.tojson()
+			});
+			{{{P}}}ResetBrowserCampaignsAndClubId({{{P}}}G_Type_CurrentBrowser);
+		}
+		case "{{{P}}}button-editor-settings": {
+			{{{P}}}PendingEvents.add({{{P}}}K_Event{
+				Type = {{{P}}}C_EventType_EditorSettings,
+				DataType = {{{P}}}C_DataType_Map,
+				Data = {{{P}}}G_PreSelectedMapBrowserData.MapInfo.tojson()
+			});
+			{{{P}}}ResetBrowserCampaignsAndClubId({{{P}}}G_Type_CurrentBrowser);
+		}
+		case "{{{P}}}button-list-multi-select-valid": {
+			if ({{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) {
+				if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Replay)) {
+					declare {{{P}}}K_ReplayInfo[] ReplayInfoList;
+					foreach (ReplayInfo in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedReplays) {
+						ReplayInfoList.add(ReplayInfo);
+					}
+					{{{P}}}PendingEvents.add({{{P}}}K_Event{
+						Type = {{{P}}}C_EventType_MultiSelect,
+						DataType = {{{P}}}C_DataType_Replay,
+						Data = ReplayInfoList.tojson()
+					});
+				}
+				if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map)) {
+					declare {{{CampaignStruct::P}}}K_Map[] MapList;
+					foreach (Map in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps) {
+						MapList.add(Map);
+					}
+					{{{P}}}PendingEvents.add({{{P}}}K_Event{
+						Type = {{{P}}}C_EventType_MultiSelect,
+						DataType = {{{P}}}C_DataType_Map,
+						Data = MapList.tojson()
+					});
+				}
+			}
+		}
+		case "{{{P}}}button-list-multi-select-select-all": {
+			if ({{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) {
+				if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Replay)) {
+					foreach (ReplayBrowserData in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Replays) {
+						if (ReplayBrowserData.SubFolder == "" && ReplayBrowserData.ReplayInfo.FileName != "") {
+							{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedReplays[ReplayBrowserData.ReplayInfo.FileName] = ReplayBrowserData.ReplayInfo;
+						}
+					}
+				}
+				if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map)) {
+					if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+						foreach (Category in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Categories) {
+							foreach (Map in Category.Playlist) {
+								if (Map.Uid != "") {
+									{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps[Map.Uid] = Map;
+								}
+							}
+						}
+					} else if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+						foreach (DailyMap in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign.DailyMaps) {
+							if (DailyMap.Map.Uid != "") {
+								{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps[DailyMap.Map.Uid] = DailyMap.Map;
+							}
+						}
+					} else {
+						foreach (MapBrowserData in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Maps) {
+							if (MapBrowserData.SubFolder == "" && MapBrowserData.MapInfo.Uid != "") {
+								{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps[MapBrowserData.MapInfo.Uid] = MapBrowserData.MapInfo;
+							}
+						}
+					}
+				}
+				{{{P}}}Private_UpdateListMultiSelect();
+			}
+		}
+		case "{{{P}}}button-list-multi-select-unselect-all": {
+			if ({{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) {
+				if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Replay)) {
+					foreach (ReplayBrowserData in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Replays) {
+						if (ReplayBrowserData.SubFolder == "" && ReplayBrowserData.ReplayInfo.FileName != "") {
+							{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedReplays.removekey(ReplayBrowserData.ReplayInfo.FileName);
+						}
+					}
+				}
+				if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map)) {
+					if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+						foreach (Category in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Categories) {
+							foreach (Map in Category.Playlist) {
+								if (Map.Uid != "") {
+									{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps.removekey(Map.Uid);
+								}
+							}
+						}
+					} else if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+						foreach (DailyMap in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign.DailyMaps) {
+							if (DailyMap.Map.Uid != "") {
+								{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps.removekey(DailyMap.Map.Uid);
+							}
+						}
+					} else {
+						foreach (MapBrowserData in {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Maps) {
+							if (MapBrowserData.SubFolder == "" && MapBrowserData.MapInfo.Uid != "") {
+								{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].SelectedMaps.removekey(MapBrowserData.MapInfo.Uid);
+							}
+						}
+					}
+				}
+				{{{P}}}Private_UpdateListMultiSelect();
+			}
+		}
+	}
+}
+
+Void InitPathsTree() {
+	{{{P}}}G_Paths_Tree = {{{P}}}C_Paths_Tree;
+	declare Integer NumberOfOfficialsCategories = 0;
+	foreach (CampaignType => IsLive in {{{P}}}G_RequestsManager.DisplayLiveContent) {
+		switch (CampaignType) {
+			case {{{CampaignStruct::P}}}C_CampaignType_Quarterly: {
+				if (IsLive) {
+					NumberOfOfficialsCategories += 1;
+				} else {
+					foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+						if (PathList.exists({{{P}}}C_Path_Quarterly)) {{{P}}}G_Paths_Tree[ParentPath].remove({{{P}}}C_Path_Quarterly);
+					}
+				}
+			}
+			case {{{CampaignStruct::P}}}C_CampaignType_Monthly: {
+				if (IsLive) {
+					NumberOfOfficialsCategories += 1;
+				} else {
+					foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+						if (PathList.exists({{{P}}}C_Path_Monthly)) {{{P}}}G_Paths_Tree[ParentPath].remove({{{P}}}C_Path_Monthly);
+					}
+				}
+			}
+			case {{{CampaignStruct::P}}}C_CampaignType_Club: {
+				if (!IsLive) {
+					foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+						if (PathList.exists({{{P}}}C_Path_Clubs)) {{{P}}}G_Paths_Tree[ParentPath].remove({{{P}}}C_Path_Clubs);
+					}
+				}
+			}
+		}
+	}
+	if (NumberOfOfficialsCategories == 0) {
+		foreach (ParentPath => PathList in {{{P}}}G_Paths_Tree) {
+			if (PathList.exists({{{P}}}C_Path_Officials)) {{{P}}}G_Paths_Tree[ParentPath].remove({{{P}}}C_Path_Officials);
+		}
+	}
+}
+
+Void {{{P}}}ToggleReplaySelection(Integer _BrowserType, {{{P}}}K_ReplayInfo _ReplayInfo, CMlFrame _Button_ListMultiSelectValid) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+
+	if ({{{P}}}G_Browsers[_BrowserType].SelectedReplays.existskey(_ReplayInfo.FileName)) {
+		{{{P}}}G_Browsers[_BrowserType].SelectedReplays.removekey(_ReplayInfo.FileName);
+	} else {
+		{{{P}}}G_Browsers[_BrowserType].SelectedReplays[_ReplayInfo.FileName] = _ReplayInfo;
+	}
+
+	{{{P}}}Private_UpdateListMultiSelect();
+}
+
+Void {{{P}}}ToggleMapSelection(Integer _BrowserType, {{{CampaignStruct::P}}}K_Map _MapInfo, CMlFrame _Button_ListMultiSelectValid) {
+	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
+
+	if ({{{P}}}G_Browsers[_BrowserType].SelectedMaps.existskey(_MapInfo.Uid)) {
+		{{{P}}}G_Browsers[_BrowserType].SelectedMaps.removekey(_MapInfo.Uid);
+	} else {
+		{{{P}}}G_Browsers[_BrowserType].SelectedMaps[_MapInfo.Uid] = _MapInfo;
+	}
+
+	{{{P}}}Private_UpdateListMultiSelect();
+}
+
+***MainInit***
+***
+declare CMlFrame {{{P}}}Frame_ParentPath;
+declare CMlFrame {{{P}}}Frame_Refresh;
+declare CMlFrame {{{P}}}Frame_SelectedMap;
+declare CMlFrame {{{P}}}Frame_ListButtons;
+declare CMlFrame {{{P}}}Button_ListMultiSelectValid;
+declare CMlFrame {{{P}}}Button_ListMultiSelectSelectAll;
+declare CMlFrame {{{P}}}Button_ParentPath;
+declare CMlFrame {{{P}}}Frame_LoadingSpinner;
+
+{{{P}}}G_Frame_Global <=> (Page.GetFirstChild("{{{P}}}frame-global") as CMlFrame);
+{{{P}}}G_RequestsManager.DisplayLiveContent = [
+	{{{CampaignStruct::P}}}C_CampaignType_Quarterly => False,
+	{{{CampaignStruct::P}}}C_CampaignType_Monthly => False,
+	{{{CampaignStruct::P}}}C_CampaignType_Club => False
+];
+InitPathsTree();
+{{{P}}}G_RequestsManager.NextPageLoadTime = -1;
+***
+
+***MainStart***
+***
+if ({{{P}}}G_Frame_Global != Null) {
+	{{{P}}}Frame_ParentPath <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-parent-path") as CMlFrame);
+	{{{P}}}Frame_Refresh <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-options-refresh") as CMlFrame);
+	{{{P}}}Frame_SelectedMap <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-selected-map") as CMlFrame);
+	{{{P}}}Frame_ListButtons <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-list-buttons") as CMlFrame);
+	{{{P}}}Button_ListMultiSelectValid <=> ({{{P}}}Frame_ListButtons.GetFirstChild("{{{P}}}button-list-multi-select-valid") as CMlFrame);
+	{{{P}}}Button_ListMultiSelectSelectAll <=> ({{{P}}}Frame_ListButtons.GetFirstChild("{{{P}}}button-list-multi-select-select-all") as CMlFrame);
+	{{{P}}}Button_ParentPath <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-parent-path") as CMlFrame);
+	{{{P}}}Frame_LoadingSpinner <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}frame-loading-spinner") as CMlFrame);
+}
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	{{{P}}}PendingEvents = [];
+	foreach	(BrowserType => Browser in {{{P}}}G_Browsers) {
+		if (Browser.DataTypes.exists({{{P}}}C_DataType_Map)) {
+			declare CTaskResult_MapList TaskResultList <=> Browser.TaskResultList_Map;
+			if (TaskResultList != Null) {
+				if (TaskResultList.HasSucceeded) {
+					declare {{{P}}}K_MapBrowserData[] NewMapBrowserData;
+					foreach (SubFolder in TaskResultList.SubFolders) {
+						NewMapBrowserData.add({{{P}}}K_MapBrowserData{
+							SubFolder = SubFolder,
+							Path = TaskResultList.Path,
+							ParentPath = TaskResultList.ParentPath
+						});
+					}
+					foreach (MapInfo in TaskResultList.MapInfos) {
+						// @TODO check if the folders are empty and do not display them ?
+						// It would mean checking every folder... Maybe ask Falguière a boolean to filter the maps ?
+						if (
+							(!Browser.Settings.ShowOnlyUserMaps || MapInfo.AuthorLogin == LocalUser.Login) &&
+							(!Browser.Settings.ShowOnlyPlayableMaps || MapInfo.IsPlayable) &&
+							(Browser.Settings.FilterByEnvironment.count <= 0 || Browser.Settings.FilterByEnvironment.exists(MapInfo.CollectionName)) 
+						) {
+							NewMapBrowserData.add({{{P}}}K_MapBrowserData{
+								MapInfo = {{{CampaignStruct::P}}}K_Map {
+									Uid = MapInfo.MapUid,
+									Name = MapInfo.Name,
+									AuthorLogin = MapInfo.AuthorLogin,
+									AuthorDisplayName = MapInfo.AuthorNickName,
+									AuthorTime = MapInfo.TMObjective_AuthorTime,
+									GoldTime = MapInfo.TMObjective_GoldTime,
+									SilverTime = MapInfo.TMObjective_SilverTime,
+									BronzeTime = MapInfo.TMObjective_BronzeTime,
+									ThumbnailUrl = "file://Thumbnails/MapUid/"^MapInfo.MapUid,
+									IsPlayable = MapInfo.IsPlayable,
+									CollectionName = MapInfo.CollectionName,
+									LocalFileName = MapInfo.FileName,
+									CreatedWithSimpleEditor = MapInfo.CreatedWithSimpleEditor,
+									CreatedWithPartyEditor = MapInfo.CreatedWithPartyEditor
+								},
+								Path = TaskResultList.Path,
+								ParentPath = TaskResultList.ParentPath
+							});
+						}
+					}
+					{{{P}}}G_Browsers[BrowserType].Maps = [];
+					{{{P}}}UpdateLocalMapsData(BrowserType, NewMapBrowserData);
+					{{{P}}}G_Browsers[BrowserType].MapTaskListState = {{{P}}}C_TaskListState_HasSucceeded;
+				} else if (TaskResultList.HasFailed) {
+					{{{P}}}G_Browsers[BrowserType].MapTaskListState = {{{P}}}C_TaskListState_HasFailed;
+				} else if (TaskResultList.IsCanceled) {
+					{{{P}}}G_Browsers[BrowserType].MapTaskListState = {{{P}}}C_TaskListState_IsCanceled;
+				}
+				if (!TaskResultList.IsProcessing) {
+					DataFileMgr.TaskResult_Release(TaskResultList.Id);
+					{{{P}}}G_Browsers[BrowserType].TaskResultList_Map = Null;
+				} else {
+					{{{P}}}G_Browsers[BrowserType].MapTaskListState = {{{P}}}C_TaskListState_IsProcessing;
+				}
+			}
+		}
+		if (Browser.DataTypes.exists({{{P}}}C_DataType_Replay)) {
+			declare CTaskResult_ReplayList TaskResultList <=> Browser.TaskResultList_Replay;
+			if (TaskResultList != Null) {
+				if (TaskResultList.HasSucceeded) {
+					declare {{{P}}}K_ReplayBrowserData[] NewReplays;
+					foreach (SubFolder in TaskResultList.SubFolders) {
+						NewReplays.add({{{P}}}K_ReplayBrowserData {
+							SubFolder = SubFolder,
+							ReplayInfo = {{{P}}}K_ReplayInfo {}
+						});
+					}
+					foreach (ReplayInfo in TaskResultList.ReplayInfos) {
+						NewReplays.add({{{P}}}K_ReplayBrowserData {
+							SubFolder = "",
+							ReplayInfo = {{{P}}}K_ReplayInfo {
+								Id = ReplayInfo.MapUid^"\\"^ReplayInfo.FileName,
+								MapUid = ReplayInfo.MapUid,
+								Name = ReplayInfo.Name,
+								Path = ReplayInfo.Path,
+								FileName = ReplayInfo.FileName
+							}
+						});
+					}
+
+					{{{P}}}G_Browsers[BrowserType].Replays = [];
+					{{{P}}}UpdateLocalReplaysData(BrowserType, NewReplays);
+					{{{P}}}G_Browsers[BrowserType].ReplayTaskListState = {{{P}}}C_TaskListState_HasSucceeded;
+				} else if (TaskResultList.HasFailed) {
+					{{{P}}}G_Browsers[BrowserType].ReplayTaskListState = {{{P}}}C_TaskListState_HasFailed;
+				} else if (TaskResultList.IsCanceled) {
+					{{{P}}}G_Browsers[BrowserType].ReplayTaskListState = {{{P}}}C_TaskListState_IsCanceled;
+				}
+				if (!TaskResultList.IsProcessing) {
+					DataFileMgr.TaskResult_Release(TaskResultList.Id);
+					{{{P}}}G_Browsers[BrowserType].TaskResultList_Replay = Null;
+				} else {
+					{{{P}}}G_Browsers[BrowserType].ReplayTaskListState = {{{P}}}C_TaskListState_IsProcessing;
+				}
+			}
+		}
+		foreach (DataType => File in Browser.Files) {
+			if (!Browser.DataTypes.exists(DataType)) continue;
+			declare CTaskResult_FileList TaskResultList <=> File.TaskResultList;
+			if (TaskResultList != Null) {
+				if (TaskResultList.HasSucceeded) {
+					declare {{{P}}}K_FileBrowserData[] NewFileBrowserData;
+					foreach (SubFolder in TaskResultList.SubFolders) {
+						NewFileBrowserData.add({{{P}}}K_FileBrowserData{
+							SubFolder = SubFolder,
+							Path = TaskResultList.Path,
+							ParentPath = TaskResultList.ParentPath
+						});
+					}
+					foreach (File in TaskResultList.Files) {
+						declare Boolean AddFile = True;
+						if (Browser.Settings.FilterByExtension.count > 0 && File != "") {
+							declare Text[] TmpSplit = {{{P}}}TL::Split(".", {{{P}}}TL::ToLowerCase(File));
+							declare Text Extension = TmpSplit[TmpSplit.count-1];
+							AddFile = Extension != "" && Browser.Settings.FilterByExtension.exists(Extension);
+						}
+						if (AddFile) {
+							NewFileBrowserData.add({{{P}}}K_FileBrowserData{
+								File = File,
+								Path = TaskResultList.Path,
+								ParentPath = TaskResultList.ParentPath
+							});
+						}
+					}
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].Datas = [];
+					{{{P}}}SetLocalData(BrowserType, DataType, NewFileBrowserData);
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskListState = {{{P}}}C_TaskListState_HasSucceeded;
+				} else if (TaskResultList.HasFailed) {
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskListState = {{{P}}}C_TaskListState_HasFailed;
+				} else if (TaskResultList.IsCanceled) {
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskListState = {{{P}}}C_TaskListState_IsCanceled;
+				}
+				if (!TaskResultList.IsProcessing) {
+					DataFileMgr.TaskResult_Release(TaskResultList.Id);
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskResultList = Null;
+				} else {
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskListState = {{{P}}}C_TaskListState_IsProcessing;
+				}
+			}
+		}
+	}
+
+	if (
+		{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns ||
+		{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns ||
+		{{{P}}}G_RequestsManager.WaitingForClubCampaigns ||
+		{{{P}}}G_RequestsManager.WaitingForClubs ||
+		{{{P}}}G_RequestsManager.WaitingForLoadedCampaign ||
+		{{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign
+	) {
+		foreach (Event in PendingEvents) {
+			switch (Event.Type) {
+				case CMlScriptEvent::Type::PluginCustomEvent: {
+					if (
+						(
+							{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns ||
+							{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns
+						) && (
+							Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignListUpdated ||
+							Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignListEmpty ||
+							Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignListUpdateError
+						)
+					) {
+						if (Event.CustomEventData.count > 0) {
+							// @TODO When campaigntypes are removed we need to differientiate with the new Event names and place PathType as key of Boolean Array 
+							declare Integer CampaignType = {{{P}}}TL::ToInteger(Event.CustomEventData[0]);
+							foreach	(BrowserType => Browser in {{{P}}}G_Browsers) {
+								{{{P}}}G_RequestsManager.DisplayLiveContent[CampaignType] = Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignListUpdated;
+							}
+							if (CampaignType == {{{CampaignStruct::P}}}C_CampaignType_Quarterly) {
+								{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns = False;
+							} else if (CampaignType == {{{CampaignStruct::P}}}C_CampaignType_Monthly) {
+								{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns = False;
+							}
+						}
+					} else if (
+						Event.CustomEventType == {{{CampaignStore::P}}}C_Event_ClubsCampaignListUpdated ||
+						Event.CustomEventType == {{{CampaignStore::P}}}C_Event_ClubsCampaignListError
+					) {
+						{{{P}}}G_RequestsManager.WaitingForClubCampaigns = False;
+					} else if (
+						Event.CustomEventType == {{{ClubStore::P}}}C_Event_BrowserClubsUpdated ||
+						Event.CustomEventType == {{{ClubStore::P}}}C_Event_BrowserClubsError
+					) {
+						foreach	(BrowserType => Browser in {{{P}}}G_Browsers) {
+							{{{P}}}G_RequestsManager.DisplayLiveContent[{{{CampaignStruct::P}}}C_CampaignType_Club] = Event.CustomEventType == {{{ClubStore::P}}}C_Event_BrowserClubsUpdated;
+						}
+						{{{P}}}G_RequestsManager.WaitingForClubs = False;
+					} else if ({{{P}}}G_RequestsManager.WaitingForLoadedCampaign &&
+						(
+							Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignLoadComplete ||
+							Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignListUpdateError
+						)
+					) {
+						{{{P}}}G_RequestsManager.CampaignIsLoaded = Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignLoadComplete;
+						{{{P}}}G_RequestsManager.CampaignLoadFail = !{{{P}}}G_RequestsManager.CampaignIsLoaded;
+					} else if ({{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign &&
+						(
+							Event.CustomEventType == {{{CampaignStore::P}}}C_Event_MonthlyCampaignLoadComplete ||
+							Event.CustomEventType == {{{CampaignStore::P}}}C_Event_CampaignListUpdateError
+						)
+					) {
+						{{{P}}}G_RequestsManager.MonthlyCampaignIsLoaded = Event.CustomEventType == {{{CampaignStore::P}}}C_Event_MonthlyCampaignLoadComplete;
+						{{{P}}}G_RequestsManager.MonthlyCampaignLoadFail = !{{{P}}}G_RequestsManager.MonthlyCampaignIsLoaded;
+					}
+				}
+			}
+		}
+
+		if ({{{P}}}G_RequestsManager.CampaignIsLoaded) {
+			{{{P}}}G_RequestsManager.WaitingForLoadedCampaign = False;
+		}
+		if ({{{P}}}G_RequestsManager.MonthlyCampaignIsLoaded) {
+			{{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign = False;
+		}
+
+		if ({{{P}}}G_RequestsManager.NextPageLoadTime > 0 && Now >= {{{P}}}G_RequestsManager.NextPageLoadTime) {
+			declare ElementsPerPage = {{{P}}}GetElementsPerPage({{{P}}}G_Type_CurrentBrowser);
+
+			{{{LoadingSpinner::P}}}StartAnimation({{{P}}}Frame_LoadingSpinner);
+			{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, 0);
+			{{{P}}}G_Frame_CurrentScroll.Visible = False;
+
+			if ({{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns) {
+				{{{CampaignStore::P}}}Action_LoadMonthlyCampaignsPage({{{P}}}G_RequestsManager.PageMonthly, ElementsPerPage);
+			}
+			if ({{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns) {
+				{{{CampaignStore::P}}}Action_LoadCampaignsPage({{{CampaignStruct::P}}}C_CampaignType_Quarterly, {{{P}}}G_RequestsManager.PageQuarterly, ElementsPerPage);
+			}
+			if ({{{P}}}G_RequestsManager.WaitingForClubCampaigns) {
+				{{{CampaignStore::P}}}Action_LoadClubsCampaignsPage({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenClubId, {{{P}}}G_RequestsManager.PageClubCampaigns, ElementsPerPage);
+			}
+			if ({{{P}}}G_RequestsManager.WaitingForClubs) {
+				{{{ClubStore::P}}}Action_LoadClubsBrowserPage({{{P}}}G_RequestsManager.PageClubs, ElementsPerPage);
+			}
+			if ({{{P}}}G_RequestsManager.WaitingForLoadedCampaign && !{{{P}}}G_RequestsManager.CampaignIsLoaded) {
+				{{{CampaignStore::P}}}Action_LoadCampaign({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Id, {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Club.Id);
+			}
+			if ({{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign && !{{{P}}}G_RequestsManager.MonthlyCampaignIsLoaded) {
+				{{{CampaignStore::P}}}Action_LoadMonthlyCampaign({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign.Id);
+			}
+
+			{{{P}}}G_RequestsManager.NextPageLoadTime = -1;
+		}
+
+		if (
+			!{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns &&
+			!{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns &&
+			!{{{P}}}G_RequestsManager.WaitingForClubCampaigns &&
+			!{{{P}}}G_RequestsManager.WaitingForClubs &&
+			!{{{P}}}G_RequestsManager.WaitingForLoadedCampaign &&
+			!{{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign
+		) {
+			{{{LoadingSpinner::P}}}StopAnimation({{{P}}}Frame_LoadingSpinner);
+			InitPathsTree();
+			if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				if ({{{P}}}G_RequestsManager.CampaignLoadFail) {
+					{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign = {{{CampaignStruct::P}}}K_Campaign {
+						Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+					};
+				} else {
+					if ({{{P}}}G_RequestsManager.GetCampaign) {
+						declare Campaign = {{{CampaignStore::P}}}GetCampaignFromId({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Id);
+						{{{P}}}PendingEvents.add({{{P}}}K_Event{
+							Type = {{{P}}}C_EventType_Select,
+							DataType = {{{P}}}C_DataType_Campaign,
+							Data = Campaign.tojson()
+						});
+						{{{P}}}ResetBrowserCampaignsAndClubId({{{P}}}G_Type_CurrentBrowser);
+						{{{P}}}G_RequestsManager.GetCampaign = False;
+					} else {
+						{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign = {{{CampaignStore::P}}}GetCampaignFromId({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign.Id);
+					}
+				}
+			}
+			if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				if ({{{P}}}G_RequestsManager.MonthlyCampaignLoadFail) {
+					{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+						Id = {{{CampaignStruct::P}}}C_Campaign_NullId
+					};
+				} else {
+					declare MonthlyCampaign = {{{CampaignStore::P}}}GetMonthlyCampaignFromId({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign.Id);
+					declare TmpDailyMaps = MonthlyCampaign.DailyMaps;
+					foreach (DayIndex => DailyMap in TmpDailyMaps) {
+						if (DailyMap.Map.Uid == "" || (DailyMap.Map.DownloadUrl == "" && DailyMap.Map.LocalFileName == "") || DailyMap.RelativeStart > 0) {
+							MonthlyCampaign.DailyMaps.removekey(DayIndex);
+						}
+					}
+					if ({{{P}}}G_RequestsManager.GetCampaign) {
+						{{{P}}}PendingEvents.add({{{P}}}K_Event{
+							Type = {{{P}}}C_EventType_Select,
+							DataType = {{{P}}}C_DataType_MonthlyCampaign,
+							Data = MonthlyCampaign.tojson()
+						});
+						{{{P}}}ResetBrowserCampaignsAndClubId({{{P}}}G_Type_CurrentBrowser);
+						{{{P}}}G_RequestsManager.GetCampaign = False;
+					} else {
+						{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign = MonthlyCampaign;
+					}
+				}
+			}
+			{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount({{{P}}}G_Type_CurrentBrowser));
+		}
+	}
+
+	foreach (Event in {{{PopUpBackground::P}}}PendingEvents) {
+		if (Event.Type == {{{PopUpBackground::P}}}C_Event_LeavePopUp && Event.PopUpName == "{{{C_Name}}}") {
+			{{{P}}}LeaveBrowser();
+		}
+	}
+
+	foreach (Event in {{{Navigation::P}}}PendingEvents) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(Event, "{{{C_NavGroupName}}}") && {{{P}}}IsBrowserFocused() && !{{{P}}}IsScrollFocused()) {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+						{{{P}}}Select(Event.To);
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+						{{{P}}}Cancel(True);
+					} else {
+						if (Event.To != Null && Event.From != Null) {
+							if ({{{P}}}G_Frame_FocusHeader != Null && Event.To.HasClass("{{{C_Class_Header}}}") && !Event.From.HasClass("{{{C_Class_Header}}}")) {
+								{{{P}}}Focus({{{P}}}G_Frame_FocusHeader);
+							} else if ({{{P}}}G_Frame_FocusBody != Null && Event.To.HasClass("{{{C_Class_Body}}}") && !Event.From.HasClass("{{{C_Class_Body}}}")) {
+								{{{P}}}Focus({{{P}}}G_Frame_FocusBody);
+							} else if ({{{P}}}G_Frame_FocusFooter != Null && Event.To.HasClass("{{{C_Class_Footer}}}") && !Event.From.HasClass("{{{C_Class_Footer}}}")) {
+								{{{P}}}Focus({{{P}}}G_Frame_FocusFooter);
+							} else {
+								{{{P}}}Focus(Event.To);
+							}
+
+							if (Event.From.ControlId == Event.To.ControlId) {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event {
+									Type = {{{P}}}C_EventType_ReachLimit,
+									From = Event.From,
+									MenuNavAction = Event.Input
+								});
+							}
+						} else {
+							{{{P}}}Focus(Event.To);
+						}
+					}
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						{{{P}}}Select(Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						{{{P}}}FocusScroll(False);
+						{{{P}}}Focus(Event.To);
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{Scroll::P}}}PendingEvents) {
+		if (Event.Scroll != Null && {{{P}}}G_Frame_CurrentScroll != Null && Event.Scroll.ControlId == {{{P}}}G_Frame_CurrentScroll.ControlId) {
+			switch (Event.Type) {
+				case {{{Scroll::P}}}C_EventType_Update: {
+					declare DataCount = {{{P}}}GetBrowserDataCount({{{P}}}G_Type_CurrentBrowser);
+					declare CurrentBrowser = {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser];
+					if (
+						CurrentBrowser.ChosenCampaign.Id == {{{CampaignStruct::P}}}C_Campaign_NullId &&
+						CurrentBrowser.ChosenMonthlyCampaign.Id == {{{CampaignStruct::P}}}C_Campaign_NullId &&
+						CurrentBrowser.ChosenClubId == {{{CampaignStruct::P}}}C_Campaign_NullId
+					) {
+						switch (CurrentBrowser.CurrentPath) {
+							case {{{P}}}C_Path_Quarterly: {
+								if (Event.Page != {{{P}}}G_RequestsManager.PageQuarterly) {
+									{{{P}}}G_RequestsManager.PageQuarterly = Event.Page;
+									{{{P}}}G_RequestsManager.WaitingForQuarterlyCampaigns = True;
+
+									if (
+										{{{P}}}G_RequestsManager.NextPageLoadTime < 0 ||
+										Now >= {{{P}}}G_RequestsManager.NextPageLoadTime + {{{P}}}C_DelayBetweenRequest
+									) {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									} else {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now + {{{P}}}C_DelayBetweenRequest;
+									}
+								}
+							}
+							case {{{P}}}C_Path_Monthly: {
+								if (Event.Page != {{{P}}}G_RequestsManager.PageMonthly) {
+									{{{P}}}G_RequestsManager.PageMonthly = Event.Page;
+									{{{P}}}G_RequestsManager.WaitingForMonthlyCampaigns = True;
+
+									if (
+										{{{P}}}G_RequestsManager.NextPageLoadTime < 0 ||
+										Now >= {{{P}}}G_RequestsManager.NextPageLoadTime + {{{P}}}C_DelayBetweenRequest
+									) {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									} else {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now + {{{P}}}C_DelayBetweenRequest;
+									}
+								}
+							}
+							case {{{P}}}C_Path_Clubs: {
+								if (Event.Page != {{{P}}}G_RequestsManager.PageClubs) {
+									{{{P}}}G_RequestsManager.PageClubs = Event.Page;
+									{{{P}}}G_RequestsManager.WaitingForClubs = True;
+
+									if (
+										{{{P}}}G_RequestsManager.NextPageLoadTime < 0 ||
+										Now >= {{{P}}}G_RequestsManager.NextPageLoadTime + {{{P}}}C_DelayBetweenRequest
+									) {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									} else {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now + {{{P}}}C_DelayBetweenRequest;
+									}
+								}
+							}
+							case {{{P}}}C_Path_ChosenClub: {
+								if (Event.Page != {{{P}}}G_RequestsManager.PageClubCampaigns) {
+									{{{P}}}G_RequestsManager.PageClubCampaigns = Event.Page;
+									{{{P}}}G_RequestsManager.WaitingForClubCampaigns = True;
+
+									if (
+										{{{P}}}G_RequestsManager.NextPageLoadTime < 0 ||
+										Now >= {{{P}}}G_RequestsManager.NextPageLoadTime + {{{P}}}C_DelayBetweenRequest
+									) {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									} else {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now + {{{P}}}C_DelayBetweenRequest;
+									}
+								}
+							}
+						}
+					}
+					foreach (Key => Frame_Element in Event.ElementsVisible) {
+						Frame_Element.Visible = DataCount > Key;
+						if (Frame_Element.Visible) {
+							{{{P}}}UpdateBrowserElement(Frame_Element, Key);
+						}
+					}
+					foreach (Key => Frame_Element in Event.ElementsHidden) {
+						Frame_Element.Visible = False;
+					}
+					Event.Scroll.Visible = Event.ElementsVisible.count != 0;
+
+					// Hide other Label_NoElements
+					declare Frame_BrowserMapScroll <=> ({{{P}}}G_Frame_Global.Parent.GetFirstChild("{{{P}}}frame-browser-map-scroll") as CMlFrame);
+					declare Frame_BrowserTestMapScroll <=> ({{{P}}}G_Frame_Global.Parent.GetFirstChild("{{{P}}}frame-browser-small-map-scroll") as CMlFrame);
+					declare Frame_BrowserListScroll <=> ({{{P}}}G_Frame_Global.Parent.GetFirstChild("{{{P}}}frame-browser-list-scroll") as CMlFrame);
+					Frame_BrowserMapScroll.Parent.GetFirstChild("{{{P}}}label-no-elements").Hide();
+					Frame_BrowserTestMapScroll.Parent.GetFirstChild("{{{P}}}label-no-elements").Hide();
+					Frame_BrowserListScroll.Parent.GetFirstChild("{{{P}}}label-no-elements").Hide();
+
+					declare CMlLabel Label_NoElements = (Event.Scroll.Parent.GetFirstChild("{{{P}}}label-no-elements") as CMlLabel);
+					if (Label_NoElements != Null) Label_NoElements.Visible = !Event.Scroll.Visible && !{{{LoadingSpinner::P}}}IsLoading({{{P}}}Frame_LoadingSpinner);
+				}
+				case {{{Scroll::P}}}C_EventType_Focus: {
+					if (Event.From != Null) {{{P}}}FocusBrowserElement(Event.From, False);
+					if (Event.To != Null) {
+						if ({{{P}}}IsScrollFocused() || Event.IsMouse) {
+							{{{P}}}FocusBrowserElement(Event.To, True);
+							{{{P}}}Focus(Null);
+
+							if (
+								{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser) &&
+								{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.ListMultiSelect
+							) {
+								if ({{{P}}}GetDataType({{{P}}}G_Type_CurrentBrowser, Event.ToKey) == {{{P}}}C_DataType_Map) {
+									declare {{{P}}}K_MapBrowserData MapBrowserData = {{{P}}}GetMapBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+									{{{P}}}UpdateMapPreselection(MapBrowserData, {{{P}}}Frame_SelectedMap);
+								} else {
+									{{{P}}}UpdateMapPreselection({{{P}}}K_MapBrowserData {}, {{{P}}}Frame_SelectedMap);
+								}
+							}
+						}
+						if (!{{{P}}}IsScrollFocused()) {
+							{{{P}}}FocusScroll(True);
+						}
+						if (!{{{P}}}IsBrowserFocused()) {
+							{{{P}}}FocusBrowser(True);
+						}
+					}
+				}
+				case {{{Scroll::P}}}C_EventType_ReachLimit: {
+					if (Event.NavAction == CMlScriptEvent::EMenuNavAction::Up) {
+						{{{P}}}FocusBrowserElement(Event.From, False);
+						{{{P}}}FocusScroll(False);
+						declare CMlControl ControlTarget = {{{Navigation::P}}}GetControlTarget({{{P}}}G_Frame_CurrentScroll, Event.NavAction);
+						if (ControlTarget != Null) {
+							if ({{{Navigation::P}}}IsLocked(ControlTarget)) {
+								ControlTarget = {{{Navigation::P}}}GetControlTarget(ControlTarget, Event.NavAction);
+								if ({{{Navigation::P}}}IsLocked(ControlTarget)) ControlTarget = {{{P}}}Button_ParentPath;
+							}
+						}
+						if ({{{P}}}G_Frame_FocusHeader != Null && ControlTarget.HasClass("{{{C_Class_Header}}}")) {
+							ControlTarget = {{{P}}}G_Frame_FocusHeader;
+						}
+
+						{{{P}}}Focus(ControlTarget);
+						{{{MenuSounds::P}}}PlayFocusSound(ControlTarget);
+					} else {
+						declare CMlControl Button_EditorSettings = {{{P}}}Frame_SelectedMap.GetFirstChild("{{{P}}}button-editor-settings");
+						declare CMlControl Button_SelectMap = {{{P}}}Frame_SelectedMap.GetFirstChild("{{{P}}}button-select-map");
+						declare Frame_ButtonCreateMap <=> ({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}button-create-map") as CMlFrame);
+						if (Event.NavAction == CMlScriptEvent::EMenuNavAction::Right && !{{{Navigation::P}}}IsLocked(Button_EditorSettings)) {
+							{{{P}}}FocusBrowserElement(Event.From, False);
+							{{{P}}}FocusScroll(False);
+							{{{P}}}Focus(Button_EditorSettings);
+						} else if (
+							Event.NavAction == CMlScriptEvent::EMenuNavAction::Down &&
+							(
+								!{{{Navigation::P}}}IsLocked({{{P}}}Button_ListMultiSelectValid) ||
+								!{{{Navigation::P}}}IsLocked(Button_SelectMap) ||
+								!{{{Navigation::P}}}IsLocked(Frame_ButtonCreateMap)
+							)
+						) {
+							{{{P}}}FocusBrowserElement(Event.From, False);
+							{{{P}}}FocusScroll(False);
+							declare ControlTarget = {{{Navigation::P}}}GetControlTarget({{{P}}}G_Frame_CurrentScroll, Event.NavAction);
+							if (!{{{Navigation::P}}}IsLocked({{{P}}}Button_ListMultiSelectValid)) {
+								ControlTarget = {{{P}}}Button_ListMultiSelectValid;
+							} else if (!{{{Navigation::P}}}IsLocked(Button_SelectMap)){
+								ControlTarget = Button_SelectMap;
+							} else if (!{{{Navigation::P}}}IsLocked(Frame_ButtonCreateMap)) {
+								ControlTarget = Frame_ButtonCreateMap;
+							} else {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event {
+									Type = {{{P}}}C_EventType_ReachLimit,
+									From = Event.From,
+									MenuNavAction = Event.NavAction
+								});
+							}
+							
+							if ({{{P}}}G_Frame_FocusFooter != Null && !{{{Navigation::P}}}IsLocked({{{P}}}G_Frame_FocusFooter) && ControlTarget.HasClass("{{{C_Class_Footer}}}")) {
+								ControlTarget = {{{P}}}G_Frame_FocusFooter;
+							}
+							if (!{{{Navigation::P}}}IsLocked(ControlTarget)) {{{P}}}Focus(ControlTarget);
+						} else {
+							{{{P}}}PendingEvents.add({{{P}}}K_Event {
+								Type = {{{P}}}C_EventType_ReachLimit,
+								From = Event.From,
+								MenuNavAction = Event.NavAction
+							});
+						}
+					}
+				}
+				case {{{Scroll::P}}}C_EventType_Select: {
+					switch ({{{P}}}GetDataType({{{P}}}G_Type_CurrentBrowser, Event.ToKey)) {
+						case {{{P}}}C_DataType_Campaign: {
+							declare Campaign = {{{P}}}GetCampaign({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							declare HasPermission = True;
+							declare PermissionMessage = "";
+							declare LiveQuarterlyCampaign = {{{CampaignStore::P}}}GetLiveQuarterlyCampaign();
+							
+							if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.IsBrowsingForEdition) {
+								HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_CreateAndUploadMap);
+								if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_OpenAdvancedMapEditor;
+							} else if (Campaign.Id == LiveQuarterlyCampaign.Id) {
+								HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_PlayCurrentOfficialQuarterlyCampaign);
+								if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_PlayCurrentOfficialQuarterlyCampaign;
+							} else {
+								HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_PlayPastOfficialQuarterlyCampaign);
+								if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_PlayPastOfficialQuarterlyCampaign;
+							}
+							if (!HasPermission) {
+								{{{Router::P}}}SetParentPath("{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath());
+								{{{Router::P}}}Push("{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+									"{{{RoutePaths::C_Query_Message}}}" => PermissionMessage
+								], True);
+							} else {
+								if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Campaign)) {		
+									if (Campaign.IsLoaded) {
+										Campaign = {{{CampaignStore::P}}}GetCampaignFromId(Campaign.Id);
+										{{{P}}}PendingEvents.add({{{P}}}K_Event{
+											Type = {{{P}}}C_EventType_Select,
+											DataType = {{{P}}}C_DataType_Campaign,
+											Data = Campaign.tojson()
+										});
+										{{{P}}}ResetBrowserCampaignsAndClubId({{{P}}}G_Type_CurrentBrowser);
+									} else {
+										{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign = Campaign;
+										{{{P}}}G_RequestsManager.WaitingForLoadedCampaign = True;
+										{{{P}}}G_RequestsManager.GetCampaign = True;
+										{{{P}}}G_RequestsManager.CampaignIsLoaded = False;
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									}
+								} else if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map)) {
+									{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenCampaign = Campaign;
+									{{{P}}}G_RequestsManager.WaitingForLoadedCampaign = True;
+									{{{P}}}G_RequestsManager.CampaignIsLoaded = Campaign.IsLoaded;
+									if (
+										!Campaign.IsLoaded && (
+											{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].CurrentPath == {{{P}}}C_Path_ChosenClub ||
+											{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].CurrentPath == {{{P}}}C_Path_Quarterly
+										)
+									) {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									}
+								}
+							}
+						}
+						case {{{P}}}C_DataType_MonthlyCampaign: {
+							declare MonthlyCampaign = {{{P}}}GetMonthlyCampaign(Event.ToKey);
+							declare HasPermission = True;
+							declare PermissionMessage = "";
+							declare LiveMonthlyCampaign = {{{CampaignStore::P}}}GetLiveMonthlyCampaign();
+							
+							if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.IsBrowsingForEdition) {
+								HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_CreateAndUploadMap);
+								if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_OpenAdvancedMapEditor;
+							} else if (MonthlyCampaign.Id == LiveMonthlyCampaign.Id) {
+								HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_PlayCurrentOfficialMonthlyCampaign);
+								if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_PlayPastOfficialMonthlyCampaign;
+							} else {
+								HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_PlayPastOfficialMonthlyCampaign);
+								if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_PlayPastOfficialMonthlyCampaign;
+							}
+							if (!HasPermission) {
+								{{{Router::P}}}SetParentPath("{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath());
+								{{{Router::P}}}Push("{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+									"{{{RoutePaths::C_Query_Message}}}" => PermissionMessage
+								], True);
+							} else {
+								if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_MonthlyCampaign)) {
+									if (MonthlyCampaign.IsLoaded) {
+										MonthlyCampaign = {{{CampaignStore::P}}}GetMonthlyCampaignFromId(MonthlyCampaign.Id);
+										{{{P}}}PendingEvents.add({{{P}}}K_Event{
+											Type = {{{P}}}C_EventType_Select,
+											DataType = {{{P}}}C_DataType_MonthlyCampaign,
+											Data = MonthlyCampaign.tojson()
+										});
+										{{{P}}}ResetBrowserCampaignsAndClubId({{{P}}}G_Type_CurrentBrowser);
+									} else {
+										{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign = MonthlyCampaign;
+										{{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign = True;
+										{{{P}}}G_RequestsManager.GetCampaign = True;
+										{{{P}}}G_RequestsManager.MonthlyCampaignIsLoaded = False;
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									}
+								} else if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].DataTypes.exists({{{P}}}C_DataType_Map)) {
+									{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenMonthlyCampaign = MonthlyCampaign;
+									{{{P}}}G_RequestsManager.WaitingForLoadedMonthlyCampaign = True;
+									{{{P}}}G_RequestsManager.MonthlyCampaignIsLoaded = MonthlyCampaign.IsLoaded;
+									if (
+										!MonthlyCampaign.IsLoaded &&
+										{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].CurrentPath == {{{P}}}C_Path_Monthly
+									) {
+										{{{P}}}G_RequestsManager.NextPageLoadTime = Now;
+									}
+								}
+							}
+						}
+						case {{{P}}}C_DataType_Map: {
+							declare {{{P}}}K_MapBrowserData MapBrowserData = {{{P}}}GetMapBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							if (MapBrowserData.SubFolder != "") {
+									{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, MapBrowserData.SubFolder);
+							} else {
+								declare HasPermission = True;
+								declare PermissionMessage = "";
+								if (!MapBrowserData.MapInfo.CreatedWithSimpleEditor && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.IsBrowsingForEdition) {
+									HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_CreateAndUploadMap);
+									if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_OpenAdvancedMapEditor;
+								}
+								if (!HasPermission) {
+									{{{Router::P}}}SetParentPath("{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath());
+									{{{Router::P}}}Push("{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+										"{{{RoutePaths::C_Query_Message}}}" => PermissionMessage
+									], True);
+								} else if ({{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser) && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.ListMultiSelect) {
+									{{{P}}}ToggleMapSelection({{{P}}}G_Type_CurrentBrowser, MapBrowserData.MapInfo, {{{P}}}Button_ListMultiSelectValid);
+									{{{P}}}UpdateBrowserElement(Event.To, Event.ToKey);
+									{{{P}}}FocusBrowserElement(Event.To, True);
+								} else {
+									{{{P}}}PendingEvents.add({{{P}}}K_Event{
+										Type = {{{P}}}C_EventType_Select,
+										DataType = {{{P}}}C_DataType_Map,
+										Data = MapBrowserData.MapInfo.tojson()
+									});
+									{{{P}}}UpdateMapPreselection(MapBrowserData, {{{P}}}Frame_SelectedMap);
+								}
+							}
+						}
+						case {{{P}}}C_DataType_Replay: {
+							declare {{{P}}}K_ReplayBrowserData ReplayBrowserData = {{{P}}}GetReplayBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							if (ReplayBrowserData.SubFolder != "") {
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, ReplayBrowserData.SubFolder);
+								{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount({{{P}}}G_Type_CurrentBrowser));
+							} else if ({{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser) && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.ListMultiSelect) {
+								{{{P}}}ToggleReplaySelection({{{P}}}G_Type_CurrentBrowser, ReplayBrowserData.ReplayInfo, {{{P}}}Button_ListMultiSelectValid);
+								{{{P}}}UpdateBrowserElement(Event.To, Event.ToKey);
+								{{{P}}}FocusBrowserElement(Event.To, True);
+							} else {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event{
+									Type = {{{P}}}C_EventType_Select,
+									DataType = {{{P}}}C_DataType_Replay,
+									Data = ReplayBrowserData.ReplayInfo.tojson()
+								});
+							}
+						}
+						case {{{P}}}C_DataType_Image: {
+							declare FileBrowserData = {{{P}}}GetFileBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							if (FileBrowserData.SubFolder != "") {
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, FileBrowserData.SubFolder);
+							} else {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event{
+									Type = {{{P}}}C_EventType_Select,
+									DataType = {{{P}}}C_DataType_Image,
+									Data = FileBrowserData.File
+								});
+							}
+						}
+						case {{{P}}}C_DataType_Skin: {
+							{{{P}}}DestroyScene();
+							declare FileBrowserData = {{{P}}}GetFileBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							if (FileBrowserData.SubFolder != "") {
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, FileBrowserData.SubFolder);
+							} else {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event{
+									Type = {{{P}}}C_EventType_Select,
+									DataType = {{{P}}}C_DataType_Skin,
+									Data = FileBrowserData.File
+								});
+							}
+						}
+						case {{{P}}}C_DataType_Script: {
+							declare FileBrowserData = {{{P}}}GetFileBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							if (FileBrowserData.SubFolder != "") {
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, FileBrowserData.SubFolder);
+							} else {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event{
+									Type = {{{P}}}C_EventType_Select,
+									DataType = {{{P}}}C_DataType_Script,
+									Data = FileBrowserData.File
+								});
+							}
+						}
+						case {{{P}}}C_DataType_MatchSettings: {
+							declare FileBrowserData = {{{P}}}GetFileBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							if (FileBrowserData.SubFolder != "") {
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, FileBrowserData.SubFolder);
+							} else {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event{
+									Type = {{{P}}}C_EventType_Select,
+									DataType = {{{P}}}C_DataType_MatchSettings,
+									Data = FileBrowserData.File
+								});
+							}
+						}
+						case {{{P}}}C_DataType_Club: {
+							if (!{{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_JoinClub)) {
+								{{{Router::P}}}SetParentPath("{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath());
+								declare PermissionMessage = "";
+								if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.IsBrowsingForEdition) {
+									PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_EditClubMap;
+								} else {
+									PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_PlayPrivateActivity;
+								}
+								{{{Router::P}}}Push("{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+									"{{{RoutePaths::C_Query_Message}}}" => PermissionMessage
+								], True);
+							} else {
+								{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].ChosenClubId = {{{P}}}GetClub({{{P}}}G_Type_CurrentBrowser, Event.ToKey).Id;
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, {{{P}}}C_Path_ChosenClub);
+							}
+						}
+						case {{{P}}}C_DataType_Category: {
+							declare CurrentPath = {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].CurrentPath;
+							if ({{{P}}}G_Paths_Tree.existskey(CurrentPath) && {{{P}}}G_Paths_Tree[CurrentPath].existskey(Event.ToKey)) {
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, {{{P}}}G_Paths_Tree[CurrentPath][Event.ToKey]);
+							}
+							{{{P}}}UpdateBrowserContent({{{P}}}G_Frame_CurrentScroll, {{{P}}}GetBrowserDataCount({{{P}}}G_Type_CurrentBrowser));
+						}
+					}
+				}
+				case {{{Scroll::P}}}C_EventType_Cancel: {
+					if ({{{P}}}IsScrollFocused()) {{{P}}}Cancel(True);
+				}
+			}
+		}
+	}
+}
+***
+""",
+[
+	Http::Component(),
+	CampaignStruct::Component(),
+	ClubStruct::Component(),
+	CampaignStore::Component(),
+	ClubStore::Component(),
+	Scroll::Component(),
+	Quad9::Component(),
+	Router::Component(),
+	Navigation::Component(),
+	Transition::Component(),
+	Button::Component(),
+	PopUpBackground::Component(),
+	MenuSounds::Component(),
+	LoadingSpinner::Component(),
+	RBAC::Component(),
+	Config::Component(),
+	UserStore::Component()		
+],
+[]
+);
+}

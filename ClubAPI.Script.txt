@@ -1,0 +1,2797 @@
+/**
+ *	API for Clubs
+ */
+#Const Version		"2021-01-20"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/ClubAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/HttpStruct.Script.txt" as HttpStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/API/MapReviewAPI.Script.txt" as MapReviewAPI
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-club-api" //< Component name
+#Const P "ComponentClubAPI_" //< Prefix use to differentiate functions/variables in the script
+
+#Const C_API_Club "/api/token/club"
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+
+#Const C_RouteParameter_ClubId "ClubId"
+#Const C_RouteParameter_CampaignId "CampaignId"
+#Const C_RouteParameter_AccountId "AccountId"
+#Const C_RouteParameter_ActivityId "ActivityId"
+#Const C_RouteParameter_ItemId "ItemId"
+#Const C_RouteParameter_MapUid "MapUid"
+#Const C_RouteParameter_Position "Position"
+#Const C_RouteParameter_BucketType "BucketType"
+
+#Const C_QueryParameter_Offset "offset"
+#Const C_QueryParameter_Length "length"
+#Const C_QueryParameter_Sort "sort"
+#Const C_QueryParameter_Order "order"
+#Const C_QueryParameter_Name "name"
+#Const C_QueryParameter_Active "active"
+#Const C_QueryParameter_SeasonUid "seasonUid"
+#Const C_QueryParameter_Format "format"
+#Const C_QueryParameter_WithFeedback "withFeedback"
+#Const C_QueryParameter_WithMapInfo "withMapInfo"
+
+#Const C_Route_GetClubs ""
+#Const C_Route_GetClubsMine "/mine"
+#Const C_Route_GetClub "/:ClubId"
+#Const C_Route_PostClubCreate "/create"
+#Const C_Route_PostClubDelete "/:ClubId/delete"
+#Const C_Route_GetClubMembers "/:ClubId/member"
+#Const C_Route_GetClubMemberRequests "/:ClubId/member/request"
+#Const C_Route_PostClubMemberRequestAccept "/:ClubId/member/request/:AccountId/accept"
+#Const C_Route_PostClubMemberRequestDecline "/:ClubId/member/request/:AccountId/decline"
+#Const C_Route_GetClubMemberWithId "/:ClubId/member/:AccountId"
+#Const C_Route_DeleteClubMemberWithId "/:ClubId/member/:AccountId/delete"
+#Const C_Route_EditClubMemberWithId "/:ClubId/member/:AccountId/edit"
+#Const C_Route_PostCreateClubMember "/:ClubId/member/create"
+#Const C_Route_GetAllClubRooms "/room"
+#Const C_Route_GetAllClubCampaigns "/campaign"
+#Const C_Route_GetClubCampaignList "/:ClubId/campaign"
+#Const C_Route_GetClubCampaign "/:ClubId/campaign/:CampaignId"
+#Const C_Route_GetClubActivities "/:ClubId/activity"
+#Const C_Route_PostEditActivity "/:ClubId/activity/:ActivityId/edit"
+#Const C_Route_PostDeleteActivity "/:ClubId/activity/:ActivityId/delete"
+#Const C_Route_PostUploadMediaActivity "/:ClubId/activity/:ActivityId/upload"
+#Const C_Route_PostClubRoomCreate "/:ClubId/room/create"
+#Const C_Route_PostClubRoomEdit "/:ClubId/room/:ActivityId/edit"
+#Const C_Route_PostCreateCampaign "/:ClubId/campaign/create"
+#Const C_Route_PostEditCampaign "/:ClubId/campaign/:CampaignId/edit"
+#Const C_Route_GetClubRoomDetail "/:ClubId/room/:ActivityId"
+#Const C_Route_PostJoinLink "/:ClubId/room/:ActivityId/join"
+#Const C_Route_PostClubRoomCreateFromServer "/:ClubId/room/create-from-server"
+#Const C_Route_PostClubRoomEditFromServer "/:ClubId/room/:ActivityId/edit-from-server"
+#Const C_Route_GetClubRoomPassword "/:ClubId/room/:ActivityId/get-password"
+#Const C_Route_PostClubRoomPasswordGenerate "/:ClubId/room/:ActivityId/generate-password"
+#Const C_Route_PostEditClub "/:ClubId/edit"
+#Const C_Route_PostDeleteClubMedia "/:ClubId/media/delete"
+#Const C_Route_PostUploadClubMedia "/:ClubId/media/upload"
+#Const C_Route_PostDeleteClub "/:ClubId/delete"
+#Const C_Route_PostSetVIP "/:ClubId/vip/:AccountId/set"
+#Const C_Route_PostUnsetVIP "/:ClubId/vip/:AccountId/unset"
+#Const C_Route_GetVIPListOnMap "/:ClubId/vip/map/:MapUid"
+#Const C_Route_GetGlobalVIPListOnMap "/player-vip/map/:MapUid"
+#Const C_Route_GetFollowersListOnMap "/follower/map/:MapUid"
+#Const C_Route_PostCreateBucket "/:ClubId/bucket/create"
+#Const C_Route_PostEditBucket "/:ClubId/bucket/:ActivityId/edit"
+#Const C_Route_PostAddBucketItems "/:ClubId/bucket/:ActivityId/add"
+#Const C_Route_PostRemoveBucketItems "/:ClubId/bucket/:ActivityId/remove"
+#Const C_Route_GetBucketActivity "/:ClubId/bucket/:ActivityId"
+#Const C_Route_PostCreateMapReviewActivity "/:ClubId/map-review/create"
+#Const C_Route_PostEditMapReviewActivity "/:ClubId/map-review/:ActivityId/edit"
+#Const C_Route_PostJoinMapReviewActivity "/:ClubId/map-review/:ActivityId/join"
+#Const C_Route_PostAddMapQueueMapReviewActivity "/:ClubId/map-review/:ActivityId/add-map-queue"
+#Const C_Route_PostRemoveSubmittedMap "/:ClubId/map-review/:ActivityId/map/:MapUid/delete"
+#Const C_Route_GetMapReviewActivity "/:ClubId/map-review/:ActivityId"
+#Const C_Route_GetMapReviewActivityPlayerSubmittedMaps "/:ClubId/map-review/:ActivityId/map/mine"
+#Const C_Route_GetMapReviewActivityAllSubmittedMaps "/:ClubId/map-review/:ActivityId/map"
+#Const C_Route_GetMapReviewActivityWaitingTime "/:ClubId/map-review/:ActivityId/waiting-time"
+#Const C_Route_PostEditBucketItem "/:ClubId/bucket/:ActivityId/item/:ItemId/edit"
+#Const C_Route_PostBucketItemAddMedia "/:ClubId/bucket/:ActivityId/item/:ItemId/add-media"
+#Const C_Route_PostBucketItemDeleteMedia "/:ClubId/bucket/:ActivityId/item/:ItemId/delete-media/:Position"
+#Const C_Route_GetAllBucketActivities "/bucket/:BucketType/all"
+#Const C_Route_PostCreateNews "/:ClubId/news/create"
+#Const C_Route_PostEditNews "/:ClubId/news/:ActivityId/edit"
+#Const C_Route_PostUploadNewsMedia "/:ClubId/news/:ActivityId/upload"
+#Const C_Route_PostDeleteNewsMedia "/:ClubId/news/:ActivityId/delete-media"
+#Const C_Route_GetNewsActivity "/:ClubId/news/:ActivityId"
+#Const C_Route_PostCreateRanking "/:ClubId/ranking/create"
+#Const C_Route_PostSetFeatured "/:ClubId/featured/set"
+#Const C_Route_PostUnsetFeatured "/:ClubId/featured/unset"
+
+// Values are from LIVE, do not change them
+#Const C_QueryValue_Sort_Popularity "popularity" //< This is the default value
+#Const C_QueryValue_Sort_Date "date"
+#Const C_QueryValue_Sort_Name "name"
+
+#Const C_QueryValue_Order_ASC "ASC" //< This is the default value for C_QueryValue_Sort_Name
+#Const C_QueryValue_Order_DESC "DESC" //< This is the default value for C_QueryValue_Sort_Popularity and C_QueryValue_Sort_Date
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct ComponentClubAPI_K_HttpClub {
+	Integer id;
+	Text name;
+	Text tag;
+	Text description;
+	Text iconUrl;
+	Text logoUrl;
+	Text decalUrl;
+	Text backgroundUrl;
+	Text verticalUrl;
+	Text decalSponsor4x1Url;
+	Text screen16x9Url;
+	Text screen8x1Url;
+	Text screen16x1Url;
+	Integer creationTimestamp;
+	Integer popularityLevel;
+	Text state;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseGetClubs {
+	ComponentClubAPI_K_HttpClub[] clubList;
+	Integer maxPage;
+	Integer clubCount;
+}
+
+#Struct ComponentClubAPI_K_ResponseGetClubs {
+	ClubStruct::LibStructuresClub_K_Club[] Clubs;
+	Integer ClubsTotal;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseGetClubMemberId {
+	Text accountId;
+	Integer clubId;
+	Text role;
+	Integer creationTimestamp;
+	Boolean vip;
+	Boolean moderator;
+	Boolean hasFeatured;
+}
+
+#Struct ComponentClubAPI_K_HttpClubMember {
+	Text accountId;
+	Text role;
+	Integer creationTimestamp;
+	Boolean vip;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseGetClubMembers {
+	ComponentClubAPI_K_HttpClubMember[] clubMemberList;
+	Integer maxPage;
+	Integer itemCount;
+}
+
+#Struct ComponentClubAPI_K_ResponseGetClubMembers {
+	ClubStruct::LibStructuresClub_K_Member[] Members;
+	Integer MembersTotal;
+}
+
+#Struct ComponentClubAPI_K_HttpSetting {
+	Text key;
+	Text value;
+	Text type;
+}
+
+#Struct ComponentClubAPI_K_HttpRoomCreationWithCampaignId {
+	Text name;
+	Text region;
+	Integer maxPlayersPerServer;
+	Text script;
+	ComponentClubAPI_K_HttpSetting[] settings;
+	Integer campaignId;
+	Integer scalable;
+	Integer password;
+}
+
+#Struct ComponentClubAPI_K_HttpRoomCreationWithMapList {
+	Text name;
+	Text region;
+	Integer maxPlayersPerServer;
+	Text script;
+	ComponentClubAPI_K_HttpSetting[] settings;
+	Text[] maps;
+	Integer scalable;
+	Integer password;
+}
+
+#Struct ComponentClubAPI_K_HttpClubRoomCreationFromServer {
+	Text name;
+	Text login;
+}
+
+#Struct ComponentClubAPI_K_HttpRoomModel {
+	Integer id;
+	Text[] maps;
+	Text script;
+}
+
+#Struct ComponentClubAPI_K_HttpRoomCreated {
+	Integer clubId;
+	Integer roomId;
+	Integer campaignId;
+	ComponentClubAPI_K_HttpRoomModel roomModel;
+}
+
+#Struct ComponentClubAPI_K_HttpServerInfo {
+	Text joinLink;
+	Integer playerCount;
+	Text currentMapUid;
+	Boolean starting;
+}
+
+#Struct ComponentClubAPI_K_HttpRoom {
+	Integer id;
+	Text name;
+	Text region;
+	Text serverAccountId;
+	Integer maxPlayers;
+	Integer playerCount;
+	Text[] maps;
+	Text script;
+	Boolean scalable;
+	Integer creationTimestamp;
+	ComponentClubAPI_K_HttpSetting[Text] scriptSettings;
+	ComponentClubAPI_K_HttpServerInfo serverInfo;
+}
+
+#Struct ComponentClubAPI_K_HttpClubRoom {
+	Integer id;
+	Integer clubId;
+	Text clubName;
+	Boolean nadeo;
+	Integer campaignId;
+	Text playerServerLogin;
+	Integer activityId;
+	Text mediaUrl;
+	Text name;
+	Integer popularityLevel;
+	Integer creationTimestamp;
+	Boolean password;
+	ComponentClubAPI_K_HttpRoom room;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseGetClubRooms {
+	ComponentClubAPI_K_HttpClubRoom[] clubRoomList;
+	Integer maxPage;
+	Integer itemCount;
+}
+
+#Struct ComponentClubAPI_K_ResponseGetClubRooms {
+	ClubStruct::LibStructuresClub_K_Room[] Rooms;
+	Integer ClubsRoomsTotal;
+}
+
+#Struct ComponentClubAPI_K_HttpClubRoomPassword {
+	Text password;
+}
+
+#Struct ComponentClubAPI_K_HttpClubCampaign {
+	Integer clubId;
+	Text clubName;
+	Text clubDecalUrl;
+	Integer campaignId;
+	Integer publicationTimestamp;
+	Integer activityId;
+	Text mediaUrl;
+	Text name;
+	HttpStruct::LibHttpStruct_K_HttpCampaign campaign;
+	Integer popularityLevel;
+	Boolean trophies;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseGetClubCampaignList {
+	ComponentClubAPI_K_HttpClubCampaign[] clubCampaignList;
+	Integer maxPage;
+	Integer itemCount;
+}
+
+#Struct ComponentClubAPI_K_ResponseGetClubCampaignList {
+	CampaignStruct::LibCampaignStruct_K_Campaign[] CampaignList;
+	Integer CampaignsTotal;
+}
+
+#Struct ComponentClubAPI_K_HttpActivity {
+	Integer id;
+	Text name;
+	Text activityType;
+	Integer externalId;
+	Integer position;
+	Boolean public;
+	Boolean active;
+	Text mediaUrl;
+	Boolean password;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseGetClubActivities {
+	ComponentClubAPI_K_HttpActivity[] activityList;
+	Integer maxPage;
+	Integer itemCount;
+}
+
+#Struct ComponentClubAPI_K_ResponseGetClubActivities {
+	ClubStruct::LibStructuresClub_K_Activity[] Activities;
+	Integer ActivitiesTotal;
+}
+
+#Struct ComponentClubAPI_K_HttpRole {
+	Text role;
+}
+
+// We can edit only one parameter of the activity at once
+// So we need a struct for each parameter
+#Struct ComponentClubAPI_K_HttpMoveActivity {
+	Integer position;
+}
+#Struct ComponentClubAPI_K_HttpActivateActivity {
+	Integer active; //< 1 to activate, 0 to deactivate
+}
+#Struct ComponentClubAPI_K_HttpUpdatePrivacyActivity {
+	Integer public;
+}
+#Struct ComponentClubAPI_K_HttpUpdateActivityName {
+	Text name;
+}
+
+#Struct ComponentClubAPI_K_HttpMapCreation {
+	Integer position;
+	Text mapUid;
+}
+
+#Struct ComponentClubAPI_K_HttpCampaignCreation {
+	Text name;
+	ComponentClubAPI_K_HttpMapCreation[] playlist;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseFromPostCreateCampaign {
+	Integer clubId;
+	Integer campaignId;
+	Integer publicationTimestamp;
+	Integer activityId;
+	HttpStruct::LibHttpStruct_K_HttpCampaign campaign;
+}
+
+#Struct ComponentClubAPI_K_ResponseFromPostCreateCampaign {
+	CampaignStruct::LibCampaignStruct_K_Campaign Campaign;
+	Integer ActivityId;
+}
+
+#Struct ComponentClubAPI_K_HttpClubCreation {
+	Text name;
+	Text tag;
+	Text description;
+	Text state;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseFromGetVIPListOnMap {
+	Text[] accountIdList;
+}
+
+#Struct ComponentClubAPI_K_HttpCreateBucket {
+	Text name;
+	Text type;
+}
+
+#Struct ComponentClubAPI_K_HttpEditBucket {
+	Text name;
+}
+
+#Struct ComponentClubAPI_K_HttpBucketItem {
+	Text itemId;
+	Integer position;
+	Text description;
+	Text[] mediaUrls;
+}
+
+#Struct ComponentClubAPI_K_HttpBucketItemList {
+	Text[] itemIdList;
+}
+
+#Struct ComponentClubAPI_K_HttpBucketItemDesc {
+	Integer position;
+	Text description;
+}
+
+#Struct ComponentClubAPI_K_HttpBucketActivity {
+	Text type;
+	ComponentClubAPI_K_HttpBucketItem[] bucketItemList;
+	Integer bucketItemCount;
+	Integer popularityLevel;
+	Integer popularityValue;
+	Integer id;
+	Text mediaUrl;
+	Integer clubId;
+	Text name;
+	Integer creationTimestamp;
+}
+
+#Struct ComponentClubAPI_K_HttpCreateMapReviewActivity {
+	Text name;
+	Integer timeLimit;
+	Integer scalable;
+	Integer maxPlayer;
+	Integer allowVoteSkipMap;
+	Integer submissionLimitation;
+}
+
+#Struct ComponentClubAPI_K_HttpMapReviewActivity {
+	Integer activityId;
+	Text mediaUrl;
+	Text mapReviewUid;
+	Integer timeLimit;
+	Boolean scalable;
+	Boolean allowVoteSkipMap;
+	Integer maxPlayer;
+	Boolean public;
+	Text game2webUrl;
+	Integer id;
+	Integer clubId;
+	Text clubName;
+	Text name;
+	Integer creationTimestamp;
+	Boolean submissionLimitation;
+}
+
+#Struct ComponentClubAPI_K_HttpCreateNews {
+	Text name;
+	Text headline;
+	Text body;
+}
+
+#Struct ComponentClubAPI_K_HttpNews {
+	Text headline;
+	Text body;
+	Text mediaUrl;
+	Integer id;
+	Integer clubId;
+	Text name;
+	Integer creationTimestamp;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseFromGetAllBucketActivities{
+	ComponentClubAPI_K_HttpBucketActivity[] clubBucketList;
+	Integer maxPage;
+	Integer itemCount;
+}
+
+#Struct ComponentClubAPI_K_ResponseFromGetBucketActivities {
+	ClubStruct::LibStructuresClub_K_BucketActivity[] BucketActivities;
+	Integer BucketActivitiesTotal;
+}
+
+#Struct ComponentClubAPI_K_HttpCreateRankings {
+	Text name;
+	Text useCase;
+	Integer campaignId;
+}
+
+#Struct ComponentClubAPI_K_ResponseFromPostCreateRanking {
+	Text useCase;
+	Integer campaignId;
+	Integer id;
+	Integer clubId;
+	Text name;
+	Integer creationTimestamp;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of clubs
+ *
+ *	@param	_Sort											The sort option
+ *	@param	_Order										The sort order
+ *	@param	_FilterName								The name to filter
+ *	@param	_IsMember									True to return clubs of the main user, False for all clubs
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubs(Text _Sort, Text _Order, Text _FilterName, Boolean _IsMember, Integer _Offset, Integer _Length) {
+	declare Text[Text] Query = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	if (!_IsMember) {
+		if (_Sort != "") {
+			Query[C_QueryParameter_Sort] = _Sort;
+		}
+		if (_Order != "") {
+			Query[C_QueryParameter_Order] = _Order;
+		}
+		if (_FilterName != "") {
+			Query[C_QueryParameter_Name] = _FilterName;
+		}
+	}
+	declare Text QueryString = Http::CreateQueryString(Query);
+	declare Text Url;
+	if (_IsMember) {
+		Url = Config::Get().APIBaseUrl^C_API_Club^C_Route_GetClubsMine^QueryString;
+	} else {
+		Url = Config::Get().APIBaseUrl^C_API_Club^C_Route_GetClubs^QueryString;
+	}
+	return Http::CreateGet(Url, C_Headers);
+}
+Http::LibCommonHttp_K_Request GetClubs(Boolean _IsMember, Integer _Offset, Integer _Length) {
+	return GetClubs("", "", "", _IsMember, _Offset, _Length);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of all clubs
+ *
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubs(Integer _Offset, Integer _Length) {
+	return GetClubs(False, _Offset, _Length);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubs request
+ComponentClubAPI_K_ResponseGetClubs GetResponseFromGetClubs(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_ResponseGetClubs ResponseGetClubs;
+	declare ComponentClubAPI_K_HttpResponseGetClubs HttpResponseGetClubs;
+	HttpResponseGetClubs.fromjson(Http::GetResult(_Request));
+	foreach (Club in HttpResponseGetClubs.clubList) {
+		ResponseGetClubs.Clubs.add(ClubStruct::LibStructuresClub_K_Club {
+			Id = Club.id,
+			Name = Club.name,
+			Tag = Club.tag,
+			Description = Club.description,
+			IconUrl = Club.iconUrl,
+			LogoUrl = Club.logoUrl,
+			DecalUrl = Club.decalUrl,
+			BgUrl = Club.backgroundUrl,
+			VerticalUrl = Club.verticalUrl,
+			DecoImageUrl_DecalSponsor4x1 = Club.decalSponsor4x1Url,
+			DecoImageUrl_Screen16x9 = Club.screen16x9Url,
+			DecoImageUrl_Screen8x1 = Club.screen8x1Url,
+			DecoImageUrl_Screen16x1 = Club.screen16x1Url,
+			PopularityLevel = Club.popularityLevel,
+			PrivacyState = Club.state
+		});
+	}
+	ResponseGetClubs.ClubsTotal = HttpResponseGetClubs.clubCount;
+	return ResponseGetClubs;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a specific club
+ *
+ *	@param	_ClubId										The id of the club to fetch
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClub(Integer _ClubId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetClub, [C_RouteParameter_ClubId => ""^_ClubId]);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^Route, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClub request
+ClubStruct::LibStructuresClub_K_Club GetResponseFromGetClub(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpClub HttpResponseGetClub;
+	HttpResponseGetClub.fromjson(Http::GetResult(_Request));
+	return ClubStruct::LibStructuresClub_K_Club {
+		Id = HttpResponseGetClub.id,
+		Name = HttpResponseGetClub.name,
+		Tag = HttpResponseGetClub.tag,
+		Description = HttpResponseGetClub.description,
+		IconUrl = HttpResponseGetClub.iconUrl,
+		LogoUrl = HttpResponseGetClub.logoUrl,
+		DecalUrl = HttpResponseGetClub.decalUrl,
+		BgUrl = HttpResponseGetClub.backgroundUrl,
+		VerticalUrl = HttpResponseGetClub.verticalUrl,
+		DecoImageUrl_DecalSponsor4x1 = HttpResponseGetClub.decalSponsor4x1Url,
+		DecoImageUrl_Screen16x9 = HttpResponseGetClub.screen16x9Url,
+		DecoImageUrl_Screen8x1 = HttpResponseGetClub.screen8x1Url,
+		DecoImageUrl_Screen16x1 = HttpResponseGetClub.screen16x1Url,
+		PopularityLevel = HttpResponseGetClub.popularityLevel,
+		PrivacyState = HttpResponseGetClub.state
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a club
+ *
+ *	@param	_Name											Name of the club to create
+ *	@param	_Tag											Tag of the club
+ *	@param	_Description							Description of the club
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostClubCreate(Text _Name, Text _Tag, Text _Description, Text _PrivacyState) {
+	declare ComponentClubAPI_K_HttpClubCreation Club = ComponentClubAPI_K_HttpClubCreation {
+		name = _Name,
+		tag = _Tag,
+		description = _Description,
+		state = _PrivacyState
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^C_Route_PostClubCreate, Club.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostClubCreate request
+ClubStruct::LibStructuresClub_K_Club GetResponseFromPostClubCreate(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpClub ClubCreated;
+	ClubCreated.fromjson(Http::GetResult(_Request));
+	return ClubStruct::LibStructuresClub_K_Club {
+		Id = ClubCreated.id,
+		Name = ClubCreated.name,
+		Tag = ClubCreated.tag,
+		Description = ClubCreated.description,
+		IconUrl = ClubCreated.iconUrl,
+		LogoUrl = ClubCreated.logoUrl,
+		DecalUrl = ClubCreated.decalUrl,
+		BgUrl = ClubCreated.backgroundUrl,
+		VerticalUrl = ClubCreated.verticalUrl,
+		DecoImageUrl_DecalSponsor4x1 = ClubCreated.decalSponsor4x1Url,
+		DecoImageUrl_Screen16x9 = ClubCreated.screen16x9Url,
+		DecoImageUrl_Screen8x1 = ClubCreated.screen8x1Url,
+		DecoImageUrl_Screen16x1 = ClubCreated.screen16x1Url,
+		PopularityLevel = ClubCreated.popularityLevel,
+		PrivacyState = ClubCreated.state
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to delete a club
+ *
+ *	@param	_ClubId										Id of the club to delete
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostClubDelete(Integer _ClubId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostClubDelete, [C_RouteParameter_ClubId => ""^_ClubId]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of
+ *	all members of a club
+ *
+ *	@param	_ClubId										The club id
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubMembers(Integer _ClubId, Integer _Offset, Integer _Length) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetClubMembers, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare Text QueryString = Http::CreateQueryString([
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	]);
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Route^QueryString;
+	return Http::CreateGet(Url, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubMembers request
+ComponentClubAPI_K_ResponseGetClubMembers GetResponseFromGetClubMembers(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_ResponseGetClubMembers ResponseGetClubMembers;
+	declare ComponentClubAPI_K_HttpResponseGetClubMembers HttpResponseGetClubMembers;
+	HttpResponseGetClubMembers.fromjson(Http::GetResult(_Request));
+	foreach (Member in HttpResponseGetClubMembers.clubMemberList) {
+		ResponseGetClubMembers.Members.add(ClubStruct::LibStructuresClub_K_Member {
+			AccountId = Member.accountId,
+			Role = Member.role,
+			JoinDate = Member.creationTimestamp,
+			VIP = Member.vip
+		});
+	}
+	ResponseGetClubMembers.MembersTotal = HttpResponseGetClubMembers.itemCount;
+	return ResponseGetClubMembers;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of
+ *	all member requests of a club
+ *
+ *	@param	_ClubId										The club id
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubMemberRequests(Integer _ClubId, Integer _Offset, Integer _Length) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetClubMemberRequests, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare Text QueryString = Http::CreateQueryString([
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	]);
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Route^QueryString;
+	return Http::CreateGet(Url, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubMemberRequests request
+ComponentClubAPI_K_ResponseGetClubMembers GetResponseFromGetClubMemberRequests(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromGetClubMembers(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get info on a club member
+ *
+ *	@param	_ClubId									  The Id of the club to fetch
+ *	@param	_AccountId								The account Id of the member to fetch
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubMemberWithId(Integer _ClubId, Text _AccountId) {
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Http::InjectRouteParameters(
+		C_Route_GetClubMemberWithId,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_AccountId => _AccountId]
+	);
+	return Http::CreateGet(Url, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubMemberId request
+ClubStruct::LibStructuresClub_K_Member GetResponseFromGetClubMemberWithId(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseGetClubMemberId HttpResponseGetClubMemberId;
+	HttpResponseGetClubMemberId.fromjson(Http::GetResult(_Request));
+
+	return ClubStruct::LibStructuresClub_K_Member {
+		AccountId = HttpResponseGetClubMemberId.accountId,
+		Role = HttpResponseGetClubMemberId.role,
+		JoinDate = HttpResponseGetClubMemberId.creationTimestamp,
+		VIP = HttpResponseGetClubMemberId.vip,
+		Moderator = HttpResponseGetClubMemberId.moderator,
+		HasFeatured = HttpResponseGetClubMemberId.hasFeatured
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to delete a club member
+ *
+ *	@param	_ClubId									  The Id of the club to delete the user from
+ *	@param	_AccountId								The account Id of the member to delete
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request DeleteClubMemberWithId(Integer _ClubId, Text _AccountId) {
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Http::InjectRouteParameters(
+		C_Route_DeleteClubMemberWithId,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_AccountId => _AccountId]
+	);
+	return Http::CreatePost(Url, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to edit the role of a club member
+ *
+ *	@param	_ClubId									  The Id of the club to delete the user from
+ *	@param	_AccountId								The account Id of the member to delete
+ *	@param	_Role											The role to set to the club member
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request EditClubMemberWithId(Integer _ClubId, Text _AccountId, Text _Role) {
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Http::InjectRouteParameters(
+		C_Route_EditClubMemberWithId,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_AccountId => _AccountId]
+	);
+	declare ComponentClubAPI_K_HttpRole Role = ComponentClubAPI_K_HttpRole {
+		role = _Role
+	};
+	return Http::CreatePost(Url, Role.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a club member with the current user
+ *
+ *	@param	_ClubId									  The Id of the club to delete the user from
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostCreateClubMember(Integer _ClubId) {
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Http::InjectRouteParameters(
+		C_Route_PostCreateClubMember,
+		[C_RouteParameter_ClubId => ""^_ClubId]
+	);
+	return Http::CreatePost(Url, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of all club rooms
+ *
+ *	@param	_Sort											The sort option
+ *	@param	_Order										The sort order
+ *	@param	_FilterName								The name to filter
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetAllClubRooms(Text _Sort, Text _Order, Text _FilterName, Integer _Offset, Integer _Length) {
+	declare Text[Text] Query = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	if (_Sort != "") {
+		Query[C_QueryParameter_Sort] = _Sort;
+	}
+	if (_Order != "") {
+		Query[C_QueryParameter_Order] = _Order;
+	}
+	if (_FilterName != "") {
+		Query[C_QueryParameter_Name] = _FilterName;
+	}
+	declare Text QueryString = Http::CreateQueryString(Query);
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^C_Route_GetAllClubRooms^QueryString;
+	return Http::CreateGet(Url, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetAllClubRooms and GetClubRooms request
+ComponentClubAPI_K_ResponseGetClubRooms GetResponseFromGetClubRooms(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseGetClubRooms HttpResponseGetClubRooms;
+	HttpResponseGetClubRooms.fromjson(Http::GetResult(_Request));
+
+	declare ComponentClubAPI_K_ResponseGetClubRooms ResponseGetClubRooms;
+	foreach (HttpClubRoom in HttpResponseGetClubRooms.clubRoomList) {
+		declare ClubStruct::LibStructuresClub_K_ScriptSetting[] ScriptSettings;
+		foreach (HttpSetting in HttpClubRoom.room.scriptSettings) {
+			ScriptSettings.add(ClubStruct::LibStructuresClub_K_ScriptSetting {
+				Key = HttpSetting.key,
+				Value = HttpSetting.value,
+				Type = HttpSetting.type
+			});
+		}
+
+		ResponseGetClubRooms.Rooms.add(ClubStruct::LibStructuresClub_K_Room {
+			Id = HttpClubRoom.id,
+			RoomId = HttpClubRoom.room.id,
+			ClubId = HttpClubRoom.clubId,
+			ClubName = HttpClubRoom.clubName,
+			ActivityId = HttpClubRoom.activityId,
+			IsHostedByNadeo = HttpClubRoom.nadeo,
+			PlayerServerLogin = HttpClubRoom.playerServerLogin,
+			Name = HttpClubRoom.name,
+			Password =  HttpClubRoom.password,
+			Region = HttpClubRoom.room.region,
+			MaxPlayers = HttpClubRoom.room.maxPlayers,
+			ScriptName = HttpClubRoom.room.script,
+			CampaignId = HttpClubRoom.campaignId,
+			MapUids = HttpClubRoom.room.maps,
+			MediaUrl = HttpClubRoom.mediaUrl,
+			PopularityLevel = HttpClubRoom.popularityLevel,
+			ScriptSettings = ScriptSettings,
+			CreationTimestamp = HttpClubRoom.room.creationTimestamp,
+			Scalable = HttpClubRoom.room.scalable,
+			ServerInfo = ClubStruct::LibStructuresClub_K_ServerInfo {
+				JoinLink = HttpClubRoom.room.serverInfo.joinLink,
+				PlayerCount = HttpClubRoom.room.playerCount,
+				CurrentMapUid = HttpClubRoom.room.serverInfo.currentMapUid,
+				IsStarting = HttpClubRoom.room.serverInfo.starting
+			}
+		});
+	}
+	ResponseGetClubRooms.ClubsRoomsTotal = HttpResponseGetClubRooms.itemCount;
+	return ResponseGetClubRooms;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of activities in a specific club
+ *
+ *	@param	_ClubId										The Id of the club to fetch
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubActivities(Integer _ClubId, Integer _Offset, Integer _Length, Boolean _Active) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetClubActivities, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare Text Active = "0";
+	if (_Active) Active = "1";
+	declare Text QueryString = Http::CreateQueryString([
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length,
+		C_QueryParameter_Active => Active
+	]);
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Route^QueryString;
+	return Http::CreateGet(Url, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubActivities request
+ComponentClubAPI_K_ResponseGetClubActivities GetResponseFromGetClubActivities(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseGetClubActivities HttpResponseGetClubActivities;
+	HttpResponseGetClubActivities.fromjson(Http::GetResult(_Request));
+
+	declare ComponentClubAPI_K_ResponseGetClubActivities ResponseGetClubActivities;
+	foreach (HttpActivity in HttpResponseGetClubActivities.activityList) {
+		ResponseGetClubActivities.Activities.add(ClubStruct::LibStructuresClub_K_Activity {
+			Id = HttpActivity.id,
+			Name = HttpActivity.name,
+			Type = HttpActivity.activityType,
+			ExternalId = HttpActivity.externalId,
+			Position = HttpActivity.position,
+			Public = HttpActivity.public,
+			Active = HttpActivity.active,
+			MediaUrl = HttpActivity.mediaUrl,
+			Password = HttpActivity.password
+		});
+	}
+	ResponseGetClubActivities.ActivitiesTotal = HttpResponseGetClubActivities.itemCount;
+	return ResponseGetClubActivities;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to move a club activity
+ *
+ *	@param	_ClubId										Id of the club of the campaign
+ *	@param	_ActivityId								Id of the activity to move
+ *	@param	_Position									The new position of the activity
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostMoveActivity(Integer _ClubId, Integer _ActivityId, Integer _Position) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostEditActivity,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare ComponentClubAPI_K_HttpMoveActivity MoveActivity = ComponentClubAPI_K_HttpMoveActivity {
+		position = _Position
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, MoveActivity.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to delete a club activity
+ *
+ *	@param	_ClubId										Id of the club of the campaign
+ *	@param	_ActivityId								Id of the activity to delete
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostDeleteActivity(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostDeleteActivity,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to upload a media to a club activity
+ *
+ *	@param	_ClubId										Id of the club of the campaign
+ *	@param	_ActivityId								Id of the activity to move
+ *	@param	_MediaUrl									The new media of the activity
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostUploadMediaActivity(Integer _ClubId, Integer _ActivityId, Text _MediaUrl) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostUploadMediaActivity,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return Http::CreatePostFile(Config::Get().APIBaseUrl^C_API_Club^Route, _MediaUrl, []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of all club campaigns
+ *
+ *	@param	_Sort											The sort option
+ *	@param	_Order										The sort order
+ *	@param	_FilterName								The name to filter
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetAllClubCampaigns(Text _Sort, Text _Order, Text _FilterName, Integer _Offset, Integer _Length) {
+	declare Text[Text] Query = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	if (_Sort != "") {
+		Query[C_QueryParameter_Sort] = _Sort;
+	}
+	if (_Order != "") {
+		Query[C_QueryParameter_Order] = _Order;
+	}
+	if (_FilterName != "") {
+		Query[C_QueryParameter_Name] = _FilterName;
+	}
+	declare Text QueryString = Http::CreateQueryString(Query);
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^C_Route_GetAllClubCampaigns^QueryString;
+	return Http::CreateGet(Url, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get all campaigns of a specific club
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *	@param	_Active										Filter for active campaign or not, if not set, both will be sent
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubCampaignList(Integer _ClubId, Integer _Offset, Integer _Length, Boolean _Active) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetClubCampaignList, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare Text Active = "0";
+	if (_Active) Active = "1";
+	declare Text QueryString = Http::CreateQueryString([
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length,
+		C_QueryParameter_Active => Active
+	]);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^Route^QueryString, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetAllClubCampaigns and GetClubCampaignList request
+ComponentClubAPI_K_ResponseGetClubCampaignList GetResponseFromGetClubCampaignList(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_ResponseGetClubCampaignList ResponseGetClubCampaigns;
+	declare ComponentClubAPI_K_HttpResponseGetClubCampaignList HttpResponseGetClubCampaigns;
+	HttpResponseGetClubCampaigns.fromjson(Http::GetResult(_Request));
+
+	foreach (HttpClubCampaign in HttpResponseGetClubCampaigns.clubCampaignList) {
+		declare Campaign = CampaignStruct::GetCampaignFromHttpCampaign(HttpClubCampaign.campaign);
+		Campaign.Type = CampaignStruct::C_CampaignType_Club;
+		Campaign.Media.ButtonBackgroundUrl = HttpClubCampaign.mediaUrl;
+		Campaign.Club.Name = HttpClubCampaign.clubName;
+		Campaign.Club.DecalUrl = HttpClubCampaign.clubDecalUrl;
+		Campaign.PopularityLevel = HttpClubCampaign.popularityLevel;
+		Campaign.ClubOfficialTrophiesEnabled = HttpClubCampaign.trophies;
+		ResponseGetClubCampaigns.CampaignList.add(Campaign);
+	}
+
+	ResponseGetClubCampaigns.CampaignsTotal = HttpResponseGetClubCampaigns.itemCount;
+	return ResponseGetClubCampaigns;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a specific campaign of a specific club
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_CampaignId								The id of the campaign
+ *	@param	_Length										The length of the list
+ *	@param	_Active										Filter for active campaign or not, if not set, both will be sent
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubCampaign(Integer _ClubId, Integer _CampaignId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetClubCampaign,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_CampaignId => ""^_CampaignId
+		]
+	);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^Route, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubCampaign request
+CampaignStruct::LibCampaignStruct_K_Campaign GetResponseFromGetClubCampaign(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpClubCampaign HttpResponseGetClubCampaign;
+	HttpResponseGetClubCampaign.fromjson(Http::GetResult(_Request));
+	
+	declare CampaignStruct::LibCampaignStruct_K_Campaign ResponseGetClubCampaign;
+	ResponseGetClubCampaign = CampaignStruct::GetCampaignFromHttpCampaign(HttpResponseGetClubCampaign.campaign);
+	ResponseGetClubCampaign.Type = CampaignStruct::C_CampaignType_Club;
+	ResponseGetClubCampaign.Club.Name = HttpResponseGetClubCampaign.clubName;
+	ResponseGetClubCampaign.Club.DecalUrl = HttpResponseGetClubCampaign.clubDecalUrl;
+	ResponseGetClubCampaign.PopularityLevel = HttpResponseGetClubCampaign.popularityLevel;
+	ResponseGetClubCampaign.ClubOfficialTrophiesEnabled = HttpResponseGetClubCampaign.trophies;
+	ResponseGetClubCampaign.Media.ButtonBackgroundUrl = HttpResponseGetClubCampaign.mediaUrl;
+
+	return ResponseGetClubCampaign;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a club campaign
+ *
+ *	@param	_Campaign									The campaign to create
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostCreateCampaign(CampaignStruct::LibCampaignStruct_K_Campaign _Campaign) {
+	declare ComponentClubAPI_K_HttpCampaignCreation HttpCampaignRessource = ComponentClubAPI_K_HttpCampaignCreation {
+		name = _Campaign.Name
+	};
+	declare ComponentClubAPI_K_HttpMapCreation[] HttpPlaylist;
+	foreach (Category in _Campaign.Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid != "") {
+				HttpCampaignRessource.playlist.add(
+					ComponentClubAPI_K_HttpMapCreation {
+						position = Map.Position,
+						mapUid = Map.Uid
+					}
+				);
+			}
+		}
+	}
+
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostCreateCampaign,
+		[C_RouteParameter_ClubId => ""^_Campaign.Club.Id]
+	);
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Route;
+
+	return Http::CreatePost(Url, HttpCampaignRessource.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to edit a club campaign
+ *
+ *	@param	_Campaign									The campaign to edit
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostEditCampaign(CampaignStruct::LibCampaignStruct_K_Campaign _Campaign) {
+	declare ComponentClubAPI_K_HttpCampaignCreation HttpCampaignRessource = ComponentClubAPI_K_HttpCampaignCreation {
+		name = _Campaign.Name
+	};
+	declare ComponentClubAPI_K_HttpMapCreation[] HttpPlaylist;
+	foreach (Category in _Campaign.Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid != "") {
+				HttpCampaignRessource.playlist.add(
+					ComponentClubAPI_K_HttpMapCreation {
+						position = Map.Position,
+						mapUid = Map.Uid
+					}
+				);
+			}
+		}
+	}
+
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostEditCampaign,
+		[
+			C_RouteParameter_ClubId => ""^_Campaign.Club.Id,
+			C_RouteParameter_CampaignId => ""^_Campaign.Id
+		]
+	);
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Route;
+
+	return Http::CreatePost(Url, HttpCampaignRessource.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostCreateCampaign or PostEditCampaign request
+ComponentClubAPI_K_ResponseFromPostCreateCampaign GetResponseFromPostCreateOrEditCampaign(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseFromPostCreateCampaign HttpCampaignFromResponse;
+	HttpCampaignFromResponse.fromjson(Http::GetResult(_Request));
+
+	declare CampaignStruct::LibCampaignStruct_K_Campaign CampaignResult;
+	// No more info needed than that for now
+	CampaignResult.Id = HttpCampaignFromResponse.campaignId;
+	CampaignResult.Club = ClubStruct::LibStructuresClub_K_Club {
+		Id = HttpCampaignFromResponse.clubId
+	};
+	CampaignResult.Type = CampaignStruct::C_CampaignType_Club;
+
+	return ComponentClubAPI_K_ResponseFromPostCreateCampaign {
+		Campaign = CampaignResult,
+		ActivityId = HttpCampaignFromResponse.activityId
+	};
+}
+ComponentClubAPI_K_ResponseFromPostCreateCampaign GetResponseFromPostCreateCampaign(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromPostCreateOrEditCampaign(_Request);
+}
+ComponentClubAPI_K_ResponseFromPostCreateCampaign GetResponseFromPostEditCampaign(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromPostCreateOrEditCampaign(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to activate a club activity
+ *
+ *	@param	_ClubId										Id of the club
+ *	@param	_ActivityId								Id of the activity to de/activate
+ *	@param	_Active										True to activate the activity, False otherwise
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostActivateActivity(Integer _ClubId, Integer _ActivityId, Boolean _Active) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostEditActivity,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare Integer Active = 0;
+	if (_Active) Active = 1;
+	declare ComponentClubAPI_K_HttpActivateActivity ActivateActivity = ComponentClubAPI_K_HttpActivateActivity {
+		active = Active
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, ActivateActivity.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to update the privacy of a club activity
+ *
+ *	@param	_ClubId										Id of the club
+ *	@param	_ActivityId								Id of the activity to update
+ *	@param	_Public										True to set it public the activity, False otherwise
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostUpdatePrivacyActivity(Integer _ClubId, Integer _ActivityId, Boolean _Public) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostEditActivity,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare Integer Public = 0;
+	if (_Public) Public = 1;
+	declare ComponentClubAPI_K_HttpUpdatePrivacyActivity UpdatePrivacyActivity = ComponentClubAPI_K_HttpUpdatePrivacyActivity {
+		public = Public
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, UpdatePrivacyActivity.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to update the name of a club activity
+ *
+ *	@param	_ClubId										Id of the club
+ *	@param	_ActivityId								Id of the activity to update
+ *	@param	_Name											The name to set to the activity
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostUpdateActivityName(Integer _ClubId, Integer _ActivityId, Text _Name) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostEditActivity,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare ComponentClubAPI_K_HttpUpdateActivityName UpdateActivityName = ComponentClubAPI_K_HttpUpdateActivityName {
+		name = _Name
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, UpdateActivityName.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a club room
+ *
+ *	@param	_Room											The room to create
+ *	@param	_EditRoom									True if it's an edit of an existing room
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostClubRoomCreateOrEdit(ClubStruct::LibStructuresClub_K_Room _Room, Boolean _EditRoom) {
+	declare ComponentClubAPI_K_HttpSetting[] HttpScriptSettings;
+	foreach (ScriptSetting in _Room.ScriptSettings) {
+		HttpScriptSettings.add(ComponentClubAPI_K_HttpSetting {
+			key = ScriptSetting.Key,
+			value = ScriptSetting.Value,
+			type = ScriptSetting.Type
+		});
+	}
+
+	declare Integer Scalable;
+	if (_Room.Scalable) Scalable = 1;
+
+	declare Integer Password;
+	if (_Room.Password && !_EditRoom) Password = 1;
+
+	declare Text PostRessource;
+	if (_Room.CampaignId != CampaignStruct::C_Campaign_NullId) {
+		declare ComponentClubAPI_K_HttpRoomCreationWithCampaignId HttpRoomCreationWithCampaignId = ComponentClubAPI_K_HttpRoomCreationWithCampaignId {
+			name = _Room.Name,
+			script = _Room.ScriptName,
+			region = _Room.Region,
+			maxPlayersPerServer = _Room.MaxPlayers,
+			settings = HttpScriptSettings,
+			campaignId = _Room.CampaignId,
+			scalable = Scalable,
+			password = Password
+		};
+		PostRessource = HttpRoomCreationWithCampaignId.tojson();
+	} else {
+		declare ComponentClubAPI_K_HttpRoomCreationWithMapList HttpRoomCreationWithMapList = ComponentClubAPI_K_HttpRoomCreationWithMapList {
+			name = _Room.Name,
+			script = _Room.ScriptName,
+			region = _Room.Region,
+			maxPlayersPerServer =_Room.MaxPlayers,
+			settings = HttpScriptSettings,
+			maps = _Room.MapUids,
+			scalable = Scalable,
+			password = Password
+		};
+		PostRessource = HttpRoomCreationWithMapList.tojson();
+	}
+
+	declare Text Route;
+	if (_EditRoom) {
+		Route = Http::InjectRouteParameters(
+			C_Route_PostClubRoomEdit,
+			[C_RouteParameter_ClubId => ""^_Room.ClubId, C_RouteParameter_ActivityId => ""^_Room.Id]
+		);
+	} else {
+		Route = Http::InjectRouteParameters(
+			C_Route_PostClubRoomCreate,
+			[C_RouteParameter_ClubId => ""^_Room.ClubId]
+		);
+	}
+
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, PostRessource, C_Headers);
+}
+Http::LibCommonHttp_K_Request PostClubRoomCreate(ClubStruct::LibStructuresClub_K_Room _Room) {
+	return PostClubRoomCreateOrEdit(_Room, False);
+}
+Http::LibCommonHttp_K_Request PostClubRoomEdit(ClubStruct::LibStructuresClub_K_Room _Room) {
+	return PostClubRoomCreateOrEdit(_Room, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to edit a club room from a server login
+ *
+ *	@param	_ClubId										Id of the club where is the room
+ *	@param	_ActivityId								Id of the club room activity to edit
+ *	@param	_Name											Name of the club room to edit
+ *	@param	_ServerLogin							Login of the server to link the room to
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostClubRoomEditFromServer(Integer _ClubId, Integer _ActivityId, Text _Name, Text _ServerLogin) {
+	declare ComponentClubAPI_K_HttpClubRoomCreationFromServer ClubRoomEdition = ComponentClubAPI_K_HttpClubRoomCreationFromServer {
+		name = _Name,
+		login = _ServerLogin
+	};
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostClubRoomEditFromServer,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_ActivityId => ""^_ActivityId]
+	);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, ClubRoomEdition.tojson(), C_Headers);
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a club room from a server login
+ *
+ *	@param	_ClubId										Id of the club to create the room into
+ *	@param	_Name											Name of the club room to create
+ *	@param	_ServerLogin							Login of the server to link the room to
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostClubRoomCreateFromServer(Integer _ClubId, Text _Name, Text _ServerLogin) {
+	declare ComponentClubAPI_K_HttpClubRoomCreationFromServer ClubRoomCreation = ComponentClubAPI_K_HttpClubRoomCreationFromServer {
+		name = _Name,
+		login = _ServerLogin
+	};
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostClubRoomCreateFromServer,
+		[C_RouteParameter_ClubId => ""^_ClubId]
+	);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, ClubRoomCreation.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostClubRoomCreateOrEdit request
+ClubStruct::LibStructuresClub_K_Room GetResponseFromPostClubRoomCreateOrEdit(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpClubRoom HttpResponseClubRoom;
+	HttpResponseClubRoom.fromjson(Http::GetResult(_Request));
+
+	declare ClubStruct::LibStructuresClub_K_ScriptSetting[] ScriptSettings;
+	foreach (HttpSetting in HttpResponseClubRoom.room.scriptSettings) {
+		ScriptSettings.add(ClubStruct::LibStructuresClub_K_ScriptSetting {
+			Key = HttpSetting.key,
+			Value = HttpSetting.value,
+			Type = HttpSetting.type
+		});
+	}
+
+	return ClubStruct::LibStructuresClub_K_Room {
+		Id = HttpResponseClubRoom.id,
+		RoomId = HttpResponseClubRoom.room.id,
+		ClubId = HttpResponseClubRoom.clubId,
+		ClubName = HttpResponseClubRoom.clubName,
+		ActivityId = HttpResponseClubRoom.activityId,
+		IsHostedByNadeo = HttpResponseClubRoom.nadeo,
+		PlayerServerLogin = HttpResponseClubRoom.playerServerLogin,
+		Name = HttpResponseClubRoom.name,
+		Password = HttpResponseClubRoom.password,
+		Region = HttpResponseClubRoom.room.region,
+		MaxPlayers = HttpResponseClubRoom.room.maxPlayers,
+		ScriptName = HttpResponseClubRoom.room.script,
+		CampaignId = HttpResponseClubRoom.campaignId,
+		MapUids = HttpResponseClubRoom.room.maps,
+		MediaUrl = HttpResponseClubRoom.mediaUrl,
+		PopularityLevel = HttpResponseClubRoom.popularityLevel,
+		CreationTimestamp = HttpResponseClubRoom.room.creationTimestamp,
+		Scalable = HttpResponseClubRoom.room.scalable,
+		ScriptSettings = ScriptSettings
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostEditClub, PostUploadClubMedia, PostDeleteClubMedia request
+ClubStruct::LibStructuresClub_K_Club GetResponseFromPostEditClubRequests(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpClub ClubCreated;
+	ClubCreated.fromjson(Http::GetResult(_Request));
+	return ClubStruct::LibStructuresClub_K_Club {
+		Id = ClubCreated.id,
+		Name = ClubCreated.name,
+		Tag = ClubCreated.tag,
+		Description = ClubCreated.description,
+		IconUrl = ClubCreated.iconUrl,
+		LogoUrl = ClubCreated.logoUrl,
+		DecalUrl = ClubCreated.decalUrl,
+		BgUrl = ClubCreated.backgroundUrl,
+		VerticalUrl = ClubCreated.verticalUrl,
+		DecoImageUrl_DecalSponsor4x1 = ClubCreated.decalSponsor4x1Url,
+		DecoImageUrl_Screen16x9 = ClubCreated.screen16x9Url,
+		DecoImageUrl_Screen8x1 = ClubCreated.screen8x1Url,
+		DecoImageUrl_Screen16x1 = ClubCreated.screen16x1Url,
+		PopularityLevel = ClubCreated.popularityLevel,
+		PrivacyState = ClubCreated.state
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to edit a club
+ *
+ *	@param	_ClubId										Id of the club to edit
+ *	@param	_Name											New name of the club
+ *	@param	_Tag											New tag of the club
+ *	@param	_Description							New description of the club
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostEditClub(Integer _ClubId, Text _Name, Text _Tag, Text _Description, Text _PrivacyState) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostEditClub, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare HttpClubEdit = ComponentClubAPI_K_HttpClubCreation {
+		name = _Name,
+		tag = _Tag,
+		description = _Description,
+		state = _PrivacyState
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpClubEdit.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostEditClub request
+ClubStruct::LibStructuresClub_K_Club GetResponseFromPostEditClub(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromPostEditClubRequests(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to uplaod a media of a club
+ *
+ *	@param	_ClubId										Id of the club to edit
+ *	@param	_MediaType								The type of media to upload
+ *	@param	_MediaUrl									The url of the logo file
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostUploadClubMedia(Integer _ClubId, Text _MediaType, Text _MediaUrl) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostUploadClubMedia, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare Text QueryString = Http::CreateQueryString([C_QueryParameter_Format => _MediaType]);
+	return Http::CreatePostFile(Config::Get().APIBaseUrl^C_API_Club^Route^QueryString, _MediaUrl, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostUploadClubMedia request
+ClubStruct::LibStructuresClub_K_Club GetResponseFromPostUploadClubMedia(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromPostEditClubRequests(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to delete a media of a club
+ *
+ *	@param	_ClubId										Id of the club to edit
+ *	@param	_MediaType								The type of media to delete
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostDeleteClubMedia(Integer _ClubId, Text _MediaType) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostDeleteClubMedia, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare Text QueryString = Http::CreateQueryString([C_QueryParameter_Format => _MediaType]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route^QueryString, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostDeleteClubMedia request
+ClubStruct::LibStructuresClub_K_Club GetResponseFromPostDeleteClubMedia(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromPostEditClubRequests(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to delete a club
+ *
+ *	@param	_ClubId										Id of the club to edit
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostDeleteClub(Integer _ClubId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostDeleteClub, [C_RouteParameter_ClubId => ""^_ClubId]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to set a VIP to a club
+ *
+ *	@param	_ClubId										Id of the club
+ *	@param	_AccountId								Account id of the VIP to set
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostSetVIP(Integer _ClubId, Text _AccountId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostSetVIP, [C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_AccountId => ""^_AccountId]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to unset a VIP to a club
+ *
+ *	@param	_ClubId										Id of the club
+ *	@param	_AccountId								Account id of the VIP to unset
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostUnsetVIP(Integer _ClubId, Text _AccountId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostUnsetVIP, [C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_AccountId => ""^_AccountId]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the list of VIP on a specific map and in specific club
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_MapUid										The uid of the map
+ *	@param	_SeasonUid								The seasonId to get the record in
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetVIPListOnMap(Integer _ClubId, Text _MapUid, Text _SeasonUid) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetVIPListOnMap,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_MapUid => _MapUid
+		]
+	);
+	declare Text QueryString = Http::CreateQueryString([C_QueryParameter_SeasonUid => _SeasonUid]);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^Route^QueryString, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the list of global vip on a map linked to the player
+ *
+ *	@param	_MapUid										The uid of the map
+ *	@param	_SeasonUid								The seasonId to get the record in
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetGlobalVIPListOnMap(Text _MapUid, Text _SeasonUid) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetGlobalVIPListOnMap, [C_RouteParameter_MapUid => _MapUid]);
+	declare Text QueryString = Http::CreateQueryString([C_QueryParameter_SeasonUid => _SeasonUid]);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^Route^QueryString, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetVIPListOnMap and GetGlobalVIPListOnMap request
+Text[] GetResponseFromGetVIPListOnMap(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseFromGetVIPListOnMap HttpResponseFromGetVIPListOnMap;
+	HttpResponseFromGetVIPListOnMap.fromjson(Http::GetResult(_Request));
+
+	return HttpResponseFromGetVIPListOnMap.accountIdList;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the list of followers of a vip on a map
+ *
+ *	@param	_MapUid										The uid of the map
+ *	@param	_SeasonUid								The seasonId to get the record in
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetFollowersListOnMap(Text _MapUid, Text _SeasonUid) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetFollowersListOnMap, [C_RouteParameter_MapUid => _MapUid]);
+	declare Text QueryString = Http::CreateQueryString([C_QueryParameter_SeasonUid => _SeasonUid]);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^Route^QueryString, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetFollowersListOnMap request
+Text[] GetResponseFromGetFollowersListOnMap(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseFromGetVIPListOnMap HttpResponseFromGetFollowersListOnMap;
+	HttpResponseFromGetFollowersListOnMap.fromjson(Http::GetResult(_Request));
+
+	return HttpResponseFromGetFollowersListOnMap.accountIdList;
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a bucket activity
+ *
+ *	@param	_ClubId										Id of the club
+ *	@param	_Name											Name of the bucket activity
+ *	@param	_BucketType								Type of the bucket activity to create
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostCreateBucket(Integer _ClubId, Text _Name, Text _BucketType) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostCreateBucket, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare HttpCreateBucket = ComponentClubAPI_K_HttpCreateBucket {
+		name = _Name,
+		type = _BucketType
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpCreateBucket.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostCreateBucket or PostEditBucket request
+ClubStruct::LibStructuresClub_K_Activity GetResponseFromPostCreateOrEditBucket(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpBucketActivity HttpBucketActivity;
+	HttpBucketActivity.fromjson(Http::GetResult(_Request));
+
+	return ClubStruct::LibStructuresClub_K_Activity {
+		Id = HttpBucketActivity.id,
+		Name = HttpBucketActivity.name,
+		Type = HttpBucketActivity.type
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostCreateBucket request
+ClubStruct::LibStructuresClub_K_Activity GetResponseFromPostCreateBucket(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromPostCreateOrEditBucket(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a bucket activity
+ *
+ *	@param	_ClubId										Id of the club
+ *	@param	_ActivityId								Id of the bucket activity
+ *	@param	_Name											Name of the bucket activity
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostEditBucket(Integer _ClubId, Integer _ActivityId, Text _Name) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostEditBucket, [C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_ActivityId => ""^_ActivityId]);
+	declare HttpEditBucket = ComponentClubAPI_K_HttpEditBucket {
+		name = _Name
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpEditBucket.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostEditBucket request
+ClubStruct::LibStructuresClub_K_Activity GetResponseFromPostEditBucket(Http::LibCommonHttp_K_Request _Request) {
+	return GetResponseFromPostCreateOrEditBucket(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to add items to a bucket activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_ItemIdList								The list of item ids to add
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostAddBucketItems(Integer _ClubId, Integer _ActivityId, Text[] _ItemIdList) {
+	declare HttpPostAddBucketItems = ComponentClubAPI_K_HttpBucketItemList {
+		itemIdList = _ItemIdList
+	};
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostAddBucketItems,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_ActivityId => ""^_ActivityId]
+	);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpPostAddBucketItems.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to edit an item from a bucket activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_ItemId										The id of the item to edit
+ *	@param	_Position									The position of the item (in the bucket item list)
+ *	@param	_Description							The description of the item
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostEditBucketItem(Integer _ClubId, Integer _ActivityId, Text _ItemId, Integer _Position, Text _Description) {
+	declare HttpPostEditBucketItem = ComponentClubAPI_K_HttpBucketItemDesc {
+		position = _Position,
+		description = _Description
+	};
+
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostEditBucketItem,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_ActivityId => ""^_ActivityId, C_RouteParameter_ItemId => _ItemId]
+	);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpPostEditBucketItem.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to add a media for an item from a bucket activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_ItemId										The id of the item
+ *	@param	_MediaUrl									The media to add
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostBucketItemAddMedia(Integer _ClubId, Integer _ActivityId, Text _ItemId, Text _MediaUrl) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostBucketItemAddMedia,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_ActivityId => ""^_ActivityId, C_RouteParameter_ItemId => _ItemId]
+	);
+	return Http::CreatePostFile(Config::Get().APIBaseUrl^C_API_Club^Route, _MediaUrl, []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to delete a media for an item from a bucket activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_ItemId										The id of the item
+ *	@param	_Position									The media position
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostBucketItemDeleteMedia(Integer _ClubId, Integer _ActivityId, Text _ItemId, Integer _Position) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostBucketItemDeleteMedia,
+		[C_RouteParameter_ClubId => ""^_ClubId, C_RouteParameter_ActivityId => ""^_ActivityId, C_RouteParameter_ItemId => _ItemId, C_RouteParameter_Position => ""^_Position]
+	);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a news activity
+ *
+ *	@param	_News											The news to create
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostCreateNews(ClubStruct::LibStructuresClub_K_News _News) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostCreateNews, [C_RouteParameter_ClubId => ""^_News.ClubId]);
+	declare HttpCreateNews = ComponentClubAPI_K_HttpCreateNews {
+		name = _News.Name,
+		headline = _News.Headline,
+		body = _News.Body
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpCreateNews.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to edit a news activity
+ *
+ *	@param	_News											The news to edit
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostEditNews(ClubStruct::LibStructuresClub_K_News _News) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostEditNews, [C_RouteParameter_ClubId => ""^_News.ClubId, C_RouteParameter_ActivityId => ""^_News.Id]);
+	declare HttpCreateNews = ComponentClubAPI_K_HttpCreateNews {
+		name = _News.Name,
+		headline = _News.Headline,
+		body = _News.Body
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpCreateNews.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostCreateNews or PostEditNews request
+ClubStruct::LibStructuresClub_K_News GetResponseFromPostCreateOrEditNews(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpNews HttpNews;
+	HttpNews.fromjson(Http::GetResult(_Request));
+
+	return ClubStruct::LibStructuresClub_K_News {
+		Id = HttpNews.id,
+		Headline = HttpNews.headline,
+		Body = HttpNews.body,
+		MediaUrl = HttpNews.mediaUrl,
+		ClubId = HttpNews.clubId,
+		Name = HttpNews.name,
+		CreationTimestamp = HttpNews.creationTimestamp
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to upload a media for a news activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the news activity
+ *	@param	_MediaUrl									The media to upload
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostUploadNewsMedia(Integer _ClubId, Integer _ActivityId, Text _MediaUrl) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostUploadNewsMedia,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return Http::CreatePostFile(Config::Get().APIBaseUrl^C_API_Club^Route, _MediaUrl, []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to delete a media of a news activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the news activity
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostDeleteNewsMedia(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostDeleteNewsMedia,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId,
+			C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a map review activity
+ *
+ *	@param	_MapReview								The map review to create
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostCreateMapReviewActivity(ClubStruct::LibStructuresClub_K_MapReview _MapReview) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostCreateMapReviewActivity, [C_RouteParameter_ClubId => ""^_MapReview.Activity.ClubId]);
+	
+	declare Integer Scalable;
+	if (_MapReview.Scalable) Scalable = 1;
+
+	declare Integer AllowVoteSkipMap;
+	if (_MapReview.AllowVoteSkipMap) AllowVoteSkipMap = 1;
+	
+	declare Integer SubmissionLimitation;
+	if (_MapReview.SubmissionLimitation) SubmissionLimitation = 1;
+
+	declare HttpCreateMapReviewActivity = ComponentClubAPI_K_HttpCreateMapReviewActivity {
+		name = _MapReview.Activity.Name,
+		timeLimit = _MapReview.TimeLimit,
+		scalable = Scalable,
+		maxPlayer = _MapReview.MaxPlayer,
+		allowVoteSkipMap = AllowVoteSkipMap,
+		submissionLimitation = SubmissionLimitation
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpCreateMapReviewActivity.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to edit a map review activity
+ *
+ *	@param	_MapReview								The map review to edit
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostEditMapReviewActivity(ClubStruct::LibStructuresClub_K_MapReview _MapReview) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_PostEditMapReviewActivity, 
+		[
+			C_RouteParameter_ClubId => ""^_MapReview.Activity.ClubId, 
+			C_RouteParameter_ActivityId => ""^_MapReview.Activity.Id
+		]
+	);
+
+	declare Integer Scalable;
+	if (_MapReview.Scalable) Scalable = 1;
+
+	declare Integer AllowVoteSkipMap;
+	if (_MapReview.AllowVoteSkipMap) AllowVoteSkipMap = 1;
+
+	declare Integer SubmissionLimitation;
+	if (_MapReview.SubmissionLimitation) SubmissionLimitation = 1;
+
+	declare HttpCreateMapReviewActivity = ComponentClubAPI_K_HttpCreateMapReviewActivity {
+		name = _MapReview.Activity.Name,
+		timeLimit = _MapReview.TimeLimit,
+		scalable = Scalable,
+		maxPlayer = _MapReview.MaxPlayer,
+		allowVoteSkipMap = AllowVoteSkipMap,
+		submissionLimitation = SubmissionLimitation
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpCreateMapReviewActivity.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostCreateMapReviewActivity or PostEditMapReviewActivity request
+ClubStruct::LibStructuresClub_K_MapReview GetResponseFromPostCreateOrEditMapReviewActivity(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpMapReviewActivity HttpMapReviewActivity;
+	HttpMapReviewActivity.fromjson(Http::GetResult(_Request));
+
+	return ClubStruct::LibStructuresClub_K_MapReview {
+		Activity = ClubStruct::LibStructuresClub_K_Activity {
+			Id = HttpMapReviewActivity.activityId,
+			ClubId = HttpMapReviewActivity.clubId,
+			Name = HttpMapReviewActivity.name,
+			Type = "{{{ClubStruct::C_ClubActivity_MapReview}}}",
+			MediaUrl = HttpMapReviewActivity.mediaUrl
+		},
+		ClubName = HttpMapReviewActivity.clubName,
+		TimeLimit = HttpMapReviewActivity.timeLimit,
+		Scalable = HttpMapReviewActivity.scalable,
+		MaxPlayer = HttpMapReviewActivity.maxPlayer,
+		AllowVoteSkipMap = HttpMapReviewActivity.allowVoteSkipMap,
+		Public = HttpMapReviewActivity.public,
+		Game2WebUrl = HttpMapReviewActivity.game2webUrl,
+		SubmissionLimitation = HttpMapReviewActivity.submissionLimitation
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get all the public and active bucket activities
+ *
+ *	@param	_Sort											The sort option
+ *	@param	_Order										The sort order
+ *	@param	_FilterName								The name to filter
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *	@param	_BucketType								The type of bucket requested (skin, map or item)
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetAllBucketActivites(Text _Sort, Text _Order, Text _FilterName, Integer _Offset, Integer _Length, Text _BucketType) {
+	declare Text[Text] Query = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	if (_Sort != "") {
+		Query[C_QueryParameter_Sort] = _Sort;
+	}
+	if (_Order != "") {
+		Query[C_QueryParameter_Order] = _Order;
+	}
+	if (_FilterName != "") {
+		Query[C_QueryParameter_Name] = _FilterName;
+	}
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetAllBucketActivities, [C_RouteParameter_BucketType => _BucketType]);
+	declare Text QueryString = Http::CreateQueryString(Query);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^Route^QueryString, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetAllBucketActivites request
+ComponentClubAPI_K_ResponseFromGetBucketActivities GetResponseFromGetAllBucketActivites(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseFromGetAllBucketActivities HttpResponseFromGetAllBucketActivites;
+	HttpResponseFromGetAllBucketActivites.fromjson(Http::GetResult(_Request));
+
+	declare ComponentClubAPI_K_ResponseFromGetBucketActivities ResponseFromGetAllBucketActivites;
+	foreach (HttpBucketActivity in HttpResponseFromGetAllBucketActivites.clubBucketList) {
+		declare ClubStruct::LibStructuresClub_K_BucketItem[] BucketItemList;
+		foreach (HttpBucketItem in HttpBucketActivity.bucketItemList) {
+			BucketItemList.add(ClubStruct::LibStructuresClub_K_BucketItem {
+				ItemId = HttpBucketItem.itemId,
+				Position = HttpBucketItem.position
+			});
+		}
+
+		ResponseFromGetAllBucketActivites.BucketActivities.add(ClubStruct::LibStructuresClub_K_BucketActivity {
+			Id = HttpBucketActivity.id,
+			Type = HttpBucketActivity.type,
+			Name = HttpBucketActivity.name,
+			MediaUrl = HttpBucketActivity.mediaUrl,
+			ClubId = HttpBucketActivity.clubId,
+			CreationTimestamp = HttpBucketActivity.creationTimestamp,
+			BucketItemList = BucketItemList,
+			PopularityLevel = HttpBucketActivity.popularityLevel,
+			PopularityValue = HttpBucketActivity.popularityValue
+		});
+	}
+	ResponseFromGetAllBucketActivites.BucketActivitiesTotal = HttpResponseFromGetAllBucketActivites.itemCount;
+
+	return ResponseFromGetAllBucketActivites;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a rankings activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_Name											The name of the activity
+ *	@param	_UseCase									The use case of the rankings activity
+ *	@param	_CampaignId								The id of the campaign to use
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostCreateRanking(Integer _ClubId, Text _Name, Text _UseCase, Integer _CampaignId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostCreateRanking, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare HttpCreateRankings = ComponentClubAPI_K_HttpCreateRankings {
+		name = _Name,
+		useCase = _UseCase,
+		campaignId = _CampaignId
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, HttpCreateRankings.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostCreateRanking request
+ClubStruct::LibStructuresClub_K_Activity GetResponseFromPostCreateRanking(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_ResponseFromPostCreateRanking HttpResponseFromPostCreateRanking;
+	HttpResponseFromPostCreateRanking.fromjson(Http::GetResult(_Request));
+
+	return ClubStruct::LibStructuresClub_K_Activity {
+		Id = HttpResponseFromPostCreateRanking.id,
+		Name = HttpResponseFromPostCreateRanking.name,
+		Type = HttpResponseFromPostCreateRanking.useCase,
+		ExternalId = HttpResponseFromPostCreateRanking.campaignId,
+		ClubId = HttpResponseFromPostCreateRanking.clubId
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to set a club as featured
+ *
+ *	@param	_ClubId										The id of the club
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostSetFeatured(Integer _ClubId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostSetFeatured, [C_RouteParameter_ClubId => ""^_ClubId]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to unset a club as featured
+ *
+ *	@param	_ClubId										The id of the club
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request PostUnsetFeatured(Integer _ClubId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostUnsetFeatured, [C_RouteParameter_ClubId => ""^_ClubId]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	return MV::Component(
+C_Name,
+"""
+""",
+"""
+#Const {{{P}}}C_API_Club {{{dump(C_API_Club)}}}
+#Const {{{P}}}C_Headers {{{dump(C_Headers)}}}
+
+#Const {{{P}}}C_Route_GetClub {{{dump(C_Route_GetClub)}}}
+#Const {{{P}}}C_Route_GetClubCampaign {{{dump(C_Route_GetClubCampaign)}}}
+#Const {{{P}}}C_Route_PostJoinLink {{{dump(C_Route_PostJoinLink)}}}
+#Const {{{P}}}C_Route_GetClubRoomDetail {{{dump(C_Route_GetClubRoomDetail)}}}
+#Const {{{P}}}C_Route_GetClubRoomPassword {{{dump(C_Route_GetClubRoomPassword)}}}
+#Const {{{P}}}C_Route_PostClubRoomPasswordGenerate {{{dump(C_Route_PostClubRoomPasswordGenerate)}}}
+#Const {{{P}}}C_Route_PostAddBucketItems {{{dump(C_Route_PostAddBucketItems)}}}
+#Const {{{P}}}C_Route_PostRemoveBucketItems {{{dump(C_Route_PostRemoveBucketItems)}}}
+#Const {{{P}}}C_Route_GetBucketActivity {{{dump(C_Route_GetBucketActivity)}}}
+#Const {{{P}}}C_Route_PostClubMemberRequestAccept {{{dump(C_Route_PostClubMemberRequestAccept)}}}
+#Const {{{P}}}C_Route_PostClubMemberRequestDecline {{{dump(C_Route_PostClubMemberRequestDecline)}}}
+#Const {{{P}}}C_Route_GetNewsActivity {{{dump(C_Route_GetNewsActivity)}}}
+#Const {{{P}}}C_Route_GetMapReviewActivity {{{dump(C_Route_GetMapReviewActivity)}}}
+#Const {{{P}}}C_Route_GetMapReviewActivityPlayerSubmittedMaps {{{dump(C_Route_GetMapReviewActivityPlayerSubmittedMaps)}}}
+#Const {{{P}}}C_Route_GetMapReviewActivityAllSubmittedMaps {{{dump(C_Route_GetMapReviewActivityAllSubmittedMaps)}}}
+#Const {{{P}}}C_Route_GetMapReviewActivityWaitingTime {{{dump(C_Route_GetMapReviewActivityWaitingTime)}}}
+#Const {{{P}}}C_Route_PostJoinMapReviewActivity {{{dump(C_Route_PostJoinMapReviewActivity)}}}
+#Const {{{P}}}C_Route_PostAddMapQueueMapReviewActivity {{{dump(C_Route_PostAddMapQueueMapReviewActivity)}}}
+#Const {{{P}}}C_Route_PostRemoveSubmittedMap {{{dump(C_Route_PostRemoveSubmittedMap)}}}
+#Const {{{P}}}C_Route_GetClubMemberWithId {{{dump(C_Route_GetClubMemberWithId)}}}
+
+#Const {{{P}}}C_RouteParameter_ClubId {{{dump(C_RouteParameter_ClubId)}}}
+#Const {{{P}}}C_RouteParameter_CampaignId {{{dump(C_RouteParameter_CampaignId)}}}
+#Const {{{P}}}C_RouteParameter_ActivityId {{{dump(C_RouteParameter_ActivityId)}}}
+#Const {{{P}}}C_RouteParameter_AccountId {{{dump(C_RouteParameter_AccountId)}}}
+#Const {{{P}}}C_RouteParameter_MapUid {{{dump(C_RouteParameter_MapUid)}}}
+
+#Const {{{P}}}C_QueryParameter_Offset {{{dump(C_QueryParameter_Offset)}}}
+#Const {{{P}}}C_QueryParameter_Length {{{dump(C_QueryParameter_Length)}}}
+#Const {{{P}}}C_QueryParameter_WithFeedback {{{dump(C_QueryParameter_WithFeedback)}}}
+#Const {{{P}}}C_QueryParameter_WithMapInfo {{{dump(C_QueryParameter_WithMapInfo)}}}
+
+#Const {{{P}}}C_QueryValue_Sort_Popularity {{{dump(C_QueryValue_Sort_Popularity)}}}
+#Const {{{P}}}C_QueryValue_Sort_Date {{{dump(C_QueryValue_Sort_Date)}}}
+#Const {{{P}}}C_QueryValue_Sort_Name {{{dump(C_QueryValue_Sort_Name)}}}
+#Const {{{P}}}C_QueryValue_Order_ASC {{{dump(C_QueryValue_Order_ASC)}}}
+#Const {{{P}}}C_QueryValue_Order_DESC {{{dump(C_QueryValue_Order_DESC)}}}
+
+#Struct {{{P}}}K_HttpClubRoomEdit {
+	Text script;
+	Integer campaignId;
+}
+
+#Struct {{{P}}}K_HttpJoinLink {
+	Text joinLink;
+	Boolean starting;
+}
+
+#Struct {{{P}}}K_JoinLink {
+	Text JoinLink;
+	Boolean IsStarting;
+}
+
+#Struct {{{P}}}K_HttpJoinMapReviewActivity {
+	Text joinLink;
+	Boolean starting;
+	Boolean noMap;
+	Integer submissionWaitTimer;
+}
+
+#Struct {{{P}}}K_JoinMapReviewActivity {
+	Text JoinLink;
+	Boolean IsStarting;
+	Boolean NoMap;
+	Integer SubmissionWaitTimer;
+}
+
+#Struct {{{P}}}K_HttpMapReviewActivityWaitingTime {
+	Integer seconds;
+}
+
+#Struct {{{P}}}K_HttpAddMapQueueMapReviewActivity {
+	Text mapUid;
+}
+
+{{{dumptype(ComponentClubAPI_K_HttpBucketItem)}}}
+{{{dumptype(ComponentClubAPI_K_HttpBucketItemList)}}}
+{{{dumptype(ComponentClubAPI_K_HttpBucketActivity)}}}
+{{{dumptype(ComponentClubAPI_K_HttpClub)}}}
+{{{dumptype(ComponentClubAPI_K_HttpSetting)}}}
+{{{dumptype(ComponentClubAPI_K_HttpServerInfo)}}}
+{{{dumptype(ComponentClubAPI_K_HttpRoom)}}}
+{{{dumptype(ComponentClubAPI_K_HttpClubRoomPassword)}}}
+{{{dumptype(ComponentClubAPI_K_HttpClubRoom)}}}
+{{{dumptype(ComponentClubAPI_K_HttpClubCampaign)}}}
+{{{dumptype(ComponentClubAPI_K_HttpNews)}}}
+{{{dumptype(ComponentClubAPI_K_HttpMapReviewActivity)}}}
+{{{dumptype(ComponentClubAPI_K_HttpResponseGetClubMemberId)}}}
+""",
+"""
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a join link of a club room
+ *
+ *	@param	_ClubId											Id of the club of the room
+ *	@param	_ActivityId									Id of the club room activity
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetJoinLink(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_PostJoinLink, [{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId]);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, "", {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetJoinLink request
+{{{P}}}K_JoinLink {{{P}}}GetResponseFromGetJoinLink({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpJoinLink HttpJoinLinkResponse;
+	HttpJoinLinkResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{P}}}K_JoinLink {
+		JoinLink = HttpJoinLinkResponse.joinLink,
+		IsStarting = HttpJoinLinkResponse.starting
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get details of a club room
+ *
+ *	@param	_ClubId										The id of the club in which the room is
+ *	@param	_ActivityId								The id of the club room activity to fetch
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetClubRoomDetail(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetClubRoomDetail,
+		[{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubRoomDetail request
+{{{ClubStruct::P}}}K_Room {{{P}}}GetResponseFromGetClubRoomDetail({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpClubRoom HttpClubRoom;
+	HttpClubRoom.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{ClubStruct::P}}}K_ScriptSetting[] ScriptSettings;
+	foreach (HttpSetting in HttpClubRoom.room.scriptSettings) {
+		ScriptSettings.add({{{ClubStruct::P}}}K_ScriptSetting {
+			Key = HttpSetting.key,
+			Value = HttpSetting.value,
+			Type = HttpSetting.type
+		});
+	}
+
+	return {{{ClubStruct::P}}}K_Room {
+		Id = HttpClubRoom.id,
+		RoomId = HttpClubRoom.room.id,
+		ClubId = HttpClubRoom.clubId,
+		ClubName = HttpClubRoom.clubName,
+		ActivityId = HttpClubRoom.activityId,
+		IsHostedByNadeo = HttpClubRoom.nadeo,
+		PlayerServerLogin = HttpClubRoom.playerServerLogin,
+		Password = HttpClubRoom.password,
+		ServerAccountId = HttpClubRoom.room.serverAccountId,
+		Name = HttpClubRoom.name,
+		Region = HttpClubRoom.room.region,
+		MaxPlayers = HttpClubRoom.room.maxPlayers,
+		ScriptName = HttpClubRoom.room.script,
+		CampaignId = HttpClubRoom.campaignId,
+		MapUids = HttpClubRoom.room.maps,
+		MediaUrl = HttpClubRoom.mediaUrl,
+		PopularityLevel = HttpClubRoom.popularityLevel,
+		ScriptSettings = ScriptSettings,
+		CreationTimestamp = HttpClubRoom.room.creationTimestamp,
+		Scalable = HttpClubRoom.room.scalable,
+		ServerInfo = {{{ClubStruct::P}}}K_ServerInfo {
+			JoinLink = HttpClubRoom.room.serverInfo.joinLink,
+			PlayerCount = HttpClubRoom.room.playerCount,
+			CurrentMapUid = HttpClubRoom.room.serverInfo.currentMapUid,
+			IsStarting = HttpClubRoom.room.serverInfo.starting
+		}
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the password of a club room
+ *
+ *	@param	_ClubId										The id of the club in which the room is
+ *	@param	_ActivityId								The id of the club room activity to fetch
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetClubRoomPassword(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetClubRoomPassword,
+		[{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubRoomPassword request
+Text {{{P}}}GetResponseFromGetClubRoomPassword({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpClubRoomPassword HttpClubRoomPassword;
+	HttpClubRoomPassword.fromjson({{{Http::P}}}GetResult(_Request));
+	
+	return HttpClubRoomPassword.password;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to generate the password of a club room
+ *
+ *	@param	_ClubId										The id of the club in which the room is
+ *	@param	_ActivityId								The id of the club room activity to fetch
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}PostClubRoomPasswordGenerate(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostClubRoomPasswordGenerate,
+		[{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId]
+	);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, "", {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a specific campaign of a specific club
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_CampaignId								The id of the campaign
+ *	@param	_Length										The length of the list
+ *	@param	_Active										Filter for active campaign or not, if not set, both will be sent
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetClubCampaign(Integer _ClubId, Integer _CampaignId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetClubCampaign,
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_CampaignId => ""^_CampaignId
+		]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubCampaign request
+{{{CampaignStruct::P}}}K_Campaign {{{P}}}GetResponseFromGetClubCampaign({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpClubCampaign HttpResponseGetClubCampaign;
+	HttpResponseGetClubCampaign.fromjson({{{Http::P}}}GetResult(_Request));
+	
+	declare {{{CampaignStruct::P}}}K_Campaign ResponseGetClubCampaign;
+	ResponseGetClubCampaign = {{{CampaignStruct::P}}}GetCampaignFromHttpCampaign(HttpResponseGetClubCampaign.campaign);
+	ResponseGetClubCampaign.Type = {{{CampaignStruct::P}}}C_CampaignType_Club;
+	ResponseGetClubCampaign.Media.ButtonBackgroundUrl = HttpResponseGetClubCampaign.mediaUrl;
+
+	return ResponseGetClubCampaign;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to add items to a bucket activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_ItemIdList								The list of item ids to add
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}PostAddBucketItems(Integer _ClubId, Integer _ActivityId, Text[] _ItemIdList) {
+	declare {{{P}}}K_HttpBucketItemList HttpPostAddBucketItems = {{{P}}}K_HttpBucketItemList {
+		itemIdList = _ItemIdList
+	};
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostAddBucketItems,
+		[{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId]
+	);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, HttpPostAddBucketItems.tojson(), {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to remove items from a bucket activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_ItemIdList								The list of item ids to add
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}PostRemoveBucketItems(Integer _ClubId, Integer _ActivityId, Text[] _ItemIdList) {
+	declare {{{P}}}K_HttpBucketItemList HttpPostRemoveItemsBucket = {{{P}}}K_HttpBucketItemList {
+		itemIdList = _ItemIdList
+	};
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostRemoveBucketItems,
+		[{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId]
+	);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, HttpPostRemoveItemsBucket.tojson(), {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a bucket activity info
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_Offset										The offset of the item list
+ *	@param	_Length										The length of the item list to get
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetBucketActivity(Integer _ClubId, Integer _ActivityId, Integer _Offset, Integer _Length) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetBucketActivity,
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Offset => ""^_Offset,
+		{{{P}}}C_QueryParameter_Length => ""^_Length
+	]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route^QueryString, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetBucketActivity request
+{{{ClubStruct::P}}}K_BucketActivity {{{P}}}GetResponseFromGetBucketActivity({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpBucketActivity HttpBucketActivity;
+	HttpBucketActivity.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{ClubStruct::P}}}K_BucketItem[] BucketItemList;
+	foreach (HttpBucketItem in HttpBucketActivity.bucketItemList) {
+		declare Text[] MediaUrls;
+		foreach (Media in HttpBucketItem.mediaUrls) {
+			MediaUrls.add(Media);
+		}
+		BucketItemList.add({{{ClubStruct::P}}}K_BucketItem {
+			ItemId = HttpBucketItem.itemId,
+			Position = HttpBucketItem.position,
+			Description = HttpBucketItem.description,
+			MediaUrls = MediaUrls
+		});
+	}
+
+	return {{{ClubStruct::P}}}K_BucketActivity {
+		Id = HttpBucketActivity.id,
+		Type = HttpBucketActivity.type,
+		Name = HttpBucketActivity.name,
+		MediaUrl = HttpBucketActivity.mediaUrl,
+		ClubId = HttpBucketActivity.clubId,
+		CreationTimestamp = HttpBucketActivity.creationTimestamp,
+		BucketItemList = BucketItemList,
+		BucketItemCount = HttpBucketActivity.bucketItemCount,
+		PopularityLevel = HttpBucketActivity.popularityLevel,
+		PopularityValue = HttpBucketActivity.popularityValue
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to accept or decline a member request
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_AccountId								The id of the member to accept or decline
+ *	@param	_IsAccepting							True if it's an accept request, False if it's a decline request
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}PostAcceptOrDeclineMemberRequest(Integer _ClubId, Text _AccountId, Boolean _IsAccepting) {
+	declare Text Url = {{{P}}}C_Route_PostClubMemberRequestDecline;
+	if (_IsAccepting) Url = {{{P}}}C_Route_PostClubMemberRequestAccept;
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		Url,
+		[{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_AccountId => _AccountId]
+	);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, "", {{{P}}}C_Headers);
+}
+{{{Http::P}}}K_Request {{{P}}}PostAcceptMemberRequest(Integer _ClubId, Text _AccountId) {
+	return {{{P}}}PostAcceptOrDeclineMemberRequest(_ClubId, _AccountId, True);
+}
+{{{Http::P}}}K_Request {{{P}}}PostDeclineMemberRequest(Integer _ClubId, Text _AccountId) {
+	return {{{P}}}PostAcceptOrDeclineMemberRequest(_ClubId, _AccountId, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get info on a club member
+ *
+ *	@param	_ClubId									  The Id of the club to fetch
+ *	@param	_AccountId								The account Id of the member to fetch
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetClubMemberWithId(Integer _ClubId, Text _AccountId) {
+	declare Text Url = {{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^{{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetClubMemberWithId,
+		[{{{P}}}C_RouteParameter_ClubId => ""^_ClubId, {{{P}}}C_RouteParameter_AccountId => _AccountId]
+	);
+	return {{{Http::P}}}CreateGet(Url, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubMemberId request
+{{{ClubStruct::P}}}K_Member {{{P}}}GetResponseFromGetClubMemberWithId({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpResponseGetClubMemberId HttpResponseGetClubMemberId;
+	HttpResponseGetClubMemberId.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{ClubStruct::P}}}K_Member {
+		AccountId = HttpResponseGetClubMemberId.accountId,
+		Role = HttpResponseGetClubMemberId.role,
+		JoinDate = HttpResponseGetClubMemberId.creationTimestamp,
+		VIP = HttpResponseGetClubMemberId.vip,
+		Moderator = HttpResponseGetClubMemberId.moderator,
+		HasFeatured = HttpResponseGetClubMemberId.hasFeatured
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a news activity info
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetNewsActivity(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetNewsActivity,
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetNewsActivity request
+{{{ClubStruct::P}}}K_News {{{P}}}GetResponseFromGetNewsActivity({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpNews HttpNews;
+	HttpNews.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{ClubStruct::P}}}K_News {
+		Id = HttpNews.id,
+		Headline = HttpNews.headline,
+		Body = HttpNews.body,
+		MediaUrl = HttpNews.mediaUrl,
+		ClubId = HttpNews.clubId,
+		Name = HttpNews.name,
+		CreationTimestamp = HttpNews.creationTimestamp
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a map review activity info
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetMapReviewActivity(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetMapReviewActivity,
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMapReviewActivity request
+{{{ClubStruct::P}}}K_MapReview {{{P}}}GetResponseFromGetMapReviewActivity({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpMapReviewActivity HttpMapReviewActivity;
+	HttpMapReviewActivity.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{ClubStruct::P}}}K_MapReview {
+		Activity = {{{ClubStruct::P}}}K_Activity {
+			Id = HttpMapReviewActivity.activityId,
+			ClubId = HttpMapReviewActivity.clubId,
+			Name = HttpMapReviewActivity.name,
+			Type = "{{{ClubStruct::C_ClubActivity_MapReview}}}",
+			MediaUrl = HttpMapReviewActivity.mediaUrl
+		},
+		ClubName = HttpMapReviewActivity.clubName,
+		TimeLimit = HttpMapReviewActivity.timeLimit,
+		Scalable = HttpMapReviewActivity.scalable,
+		MaxPlayer = HttpMapReviewActivity.maxPlayer,
+		AllowVoteSkipMap = HttpMapReviewActivity.allowVoteSkipMap,
+		Public = HttpMapReviewActivity.public,
+		Game2WebUrl = HttpMapReviewActivity.game2webUrl,
+		SubmissionLimitation = HttpMapReviewActivity.submissionLimitation
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get player submitted maps for a map review activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_Offset										The submitted map from which to start
+ *	@param	_Length										The number of submitted maps requested
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetMapReviewActivityPlayerSubmittedMaps(Integer _ClubId, Integer _ActivityId, Integer _Offset, Integer _Length) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetMapReviewActivityPlayerSubmittedMaps,
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Offset => ""^_Offset,
+		{{{P}}}C_QueryParameter_Length => ""^_Length,
+		{{{P}}}C_QueryParameter_WithFeedback => "true",
+		{{{P}}}C_QueryParameter_WithMapInfo => "true"
+	]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route^QueryString, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get all submitted maps for a map review activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *	@param	_Offset										The submitted map from which to start
+ *	@param	_Length										The number of submitted maps requested
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetMapReviewActivityAllSubmittedMaps(Integer _ClubId, Integer _ActivityId, Integer _Offset, Integer _Length) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetMapReviewActivityAllSubmittedMaps,
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Offset => ""^_Offset,
+		{{{P}}}C_QueryParameter_Length => ""^_Length
+	]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route^QueryString, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMapReviewActivityPlayerSubmittedMaps & GetMapReviewActivityAllSubmittedMaps request
+{{{MapReviewAPI::P}}}K_SubmittedMaps {{{P}}}GetResponseFromGetMapReviewActivitySubmittedMaps({{{Http::P}}}K_Request _Request) {
+	declare {{{MapReviewAPI::P}}}K_HttpSubmittedMaps HttpSubmittedMaps;
+	HttpSubmittedMaps.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{MapReviewAPI::P}}}K_SubmittedMap[] SubmittedMaps;
+	foreach (HttpSubmittedMap in HttpSubmittedMaps.submittedMaps) {
+		SubmittedMaps.add({{{MapReviewAPI::P}}}K_SubmittedMap {
+			Uid = HttpSubmittedMap.map.uid,
+			Name = HttpSubmittedMap.map.name,
+			AuthorAccountId = HttpSubmittedMap.map.author,
+			DownloadUrl = HttpSubmittedMap.map.downloadUrl,
+			ThumbnailUrl = HttpSubmittedMap.map.thumbnailUrl,
+			FeedbackCount = HttpSubmittedMap.feedbackCount,
+			NoteInfo = {{{MapReviewAPI::P}}}K_NoteInfo {
+				CountTotal = HttpSubmittedMap.noteInfo.countTotal,
+				Average = HttpSubmittedMap.noteInfo.average
+			}
+		});
+	}
+
+	return {{{MapReviewAPI::P}}}K_SubmittedMaps {
+		MapList = SubmittedMaps,
+		ItemCount = HttpSubmittedMaps.itemCount
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the waiting time of a map review activity
+ *
+ *	@param	_ClubId										The id of the club
+ *	@param	_ActivityId								The id of the activity
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetMapReviewActivityWaitingTime(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetMapReviewActivityWaitingTime,
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMapReviewActivityWaitingTime request
+Integer {{{P}}}GetResponseFromGetMapReviewActivityWaitingTime({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpMapReviewActivityWaitingTime HttpMapReviewActivityWaitingTime;
+	HttpMapReviewActivityWaitingTime.fromjson({{{Http::P}}}GetResult(_Request));
+	return HttpMapReviewActivityWaitingTime.seconds;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to join a map review activity
+ *
+ *	@param	_MapReview								The map review to join
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}PostJoinMapReviewActivity(Integer _ClubId, Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostJoinMapReviewActivity, 
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, "", []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to add a map to the map review activity
+ *
+ *	@param	_MapReview								The map review activity where the map will be added
+ *	@param	_MapUid										The Uid of the map to add
+ *																		Must be registered to the NadeoServices first !
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}PostAddMapQueueMapReviewActivity(Integer _ClubId, Integer _ActivityId, Text _MapUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostAddMapQueueMapReviewActivity, 
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	declare HttpCreateMapReviewActivity = {{{P}}}K_HttpAddMapQueueMapReviewActivity {
+		mapUid = _MapUid
+	};
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, HttpCreateMapReviewActivity.tojson(), {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the PostJoinMapReviewActivity and PostAddMapQueueMapReviewActivity request
+{{{P}}}K_JoinMapReviewActivity {{{P}}}GetResponseFromPostJoinMapReviewActivity({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpJoinMapReviewActivity HttpJoinResponse;
+	HttpJoinResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{P}}}K_JoinMapReviewActivity {
+		JoinLink = HttpJoinResponse.joinLink,
+		NoMap = HttpJoinResponse.noMap,
+		IsStarting = HttpJoinResponse.starting,
+		SubmissionWaitTimer = HttpJoinResponse.submissionWaitTimer
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to remove a submitted map from the map review activity
+ *
+ *	@param	_MapUid									The Uid of the map to remove
+ *
+ *	@return													The request
+ */
+{{{Http::P}}}K_Request {{{P}}}PostRemoveSubmittedMapRequest(Integer _ClubId, Integer _ActivityId, Text _MapUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostRemoveSubmittedMap, 
+		[
+			{{{P}}}C_RouteParameter_ClubId => ""^_ClubId,
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId,
+			{{{P}}}C_RouteParameter_MapUid => _MapUid
+		]
+	);
+
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, "", {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a specific club
+ *
+ *	@param	_ClubId										The id of the club to fetch
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetClub(Integer _ClubId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetClub, [{{{P}}}C_RouteParameter_ClubId => ""^_ClubId]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Club^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClub request
+{{{ClubStruct::P}}}K_Club {{{P}}}GetResponseFromGetClub({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpClub HttpResponseGetClub;
+	HttpResponseGetClub.fromjson({{{Http::P}}}GetResult(_Request));
+	return {{{ClubStruct::P}}}K_Club {
+		Id = HttpResponseGetClub.id,
+		Name = HttpResponseGetClub.name,
+		Tag = HttpResponseGetClub.tag,
+		Description = HttpResponseGetClub.description,
+		IconUrl = HttpResponseGetClub.iconUrl,
+		LogoUrl = HttpResponseGetClub.logoUrl,
+		DecalUrl = HttpResponseGetClub.decalUrl,
+		BgUrl = HttpResponseGetClub.backgroundUrl,
+		VerticalUrl = HttpResponseGetClub.verticalUrl,
+		DecoImageUrl_DecalSponsor4x1 = HttpResponseGetClub.decalSponsor4x1Url,
+		DecoImageUrl_Screen16x9 = HttpResponseGetClub.screen16x9Url,
+		DecoImageUrl_Screen8x1 = HttpResponseGetClub.screen8x1Url,
+		DecoImageUrl_Screen16x1 = HttpResponseGetClub.screen16x1Url,
+		PopularityLevel = HttpResponseGetClub.popularityLevel,
+		PrivacyState = HttpResponseGetClub.state
+	};
+}
+""",
+[Http::Component(), ClubStruct::Component(), CampaignStruct::Component(), HttpStruct::Component(), MapReviewAPI::Component(), Config::Component()],
+[]
+);
+}

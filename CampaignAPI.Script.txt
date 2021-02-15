@@ -1,0 +1,261 @@
+/**
+ *  Component : CampaignAPI
+ */
+#Const Version    "2020-12-17"
+#Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/CampaignAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Consts
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/HttpStruct.Script.txt" as HttpStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "lib-campaign-api" //< Component name
+#Const P "LibCampaignAPI_" //< Prefix use to differentiate functions/variables in the script
+
+#Const C_API_Campaign "/api/token/campaign"
+
+#Const C_RouteParameter_CampaignId "CampaignId"
+
+#Const C_QueryParameter_Offset "offset"
+#Const C_QueryParameter_Length "length"
+
+#Const C_Route_GetList "/official"
+#Const C_Route_GetMonth "/month"
+
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+
+#Struct LibCampaignAPI_K_HttpCampaignList {
+	HttpStruct::LibHttpStruct_K_HttpCampaign[] campaignList;
+	Integer itemCount;
+}
+
+#Struct LibCampaignAPI_K_ResponseGetCampaignList {
+	CampaignStruct::LibCampaignStruct_K_Campaign[] CampaignList;
+	Integer CampaignsTotal;
+}
+
+#Struct LibCampaignAPI_K_ResponseGetMonthlyCampaignList {
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[] CampaignList;
+	Integer CampaignsTotal;
+}
+
+#Struct LibCampaignAPI_K_HttpResponseGetMonthlyCampaignList {
+	HttpStruct::LibHttpStruct_K_HttpMonthlyCampaign[] monthList;
+	Integer itemCount;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of campaigns
+ *
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetCampaignList(Integer _Offset, Integer _Length) {
+	declare Text[Text] QueryArray = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	declare Text Query = Http::CreateQueryString(QueryArray);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Campaign^C_Route_GetList^Query, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetCampaignList request
+LibCampaignAPI_K_ResponseGetCampaignList GetResponseFromGetCampaignList(Http::LibCommonHttp_K_Request _Request) {
+	declare LibCampaignAPI_K_ResponseGetCampaignList ResponseGetCampaignList;
+	declare LibCampaignAPI_K_HttpCampaignList HttpCampaignList;
+	HttpCampaignList.fromjson(Http::GetResult(_Request));
+
+	foreach (HttpCampaign in HttpCampaignList.campaignList) {
+		ResponseGetCampaignList.CampaignList.add(CampaignStruct::GetCampaignFromHttpCampaign(HttpCampaign));
+	}
+
+	ResponseGetCampaignList.CampaignsTotal = HttpCampaignList.itemCount;
+	return ResponseGetCampaignList;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of monthly campaigns
+ *
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetMonthlyCampaignList(Integer _Offset, Integer _Length) {
+	declare Text[Text] QueryArray = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	declare Text Query = Http::CreateQueryString(QueryArray);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Campaign^C_Route_GetMonth^Query, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMonthlyCampaignList request
+LibCampaignAPI_K_ResponseGetMonthlyCampaignList GetResponseFromGetMonthlyCampaignList(Http::LibCommonHttp_K_Request _Request) {
+	declare LibCampaignAPI_K_HttpResponseGetMonthlyCampaignList HttpResponseGetMonthlyCampaignList;
+	HttpResponseGetMonthlyCampaignList.fromjson(Http::GetResult(_Request));
+
+	declare LibCampaignAPI_K_ResponseGetMonthlyCampaignList ResponseMonthlyCampaignList;
+	ResponseMonthlyCampaignList.CampaignsTotal = HttpResponseGetMonthlyCampaignList.itemCount;
+
+	foreach (HttpMonthlyCampaign in HttpResponseGetMonthlyCampaignList.monthList) {
+		declare MonthlyCampaign = CampaignStruct::LibCampaignStruct_K_MonthlyCampaign {
+			Id = TL::ToInteger(HttpMonthlyCampaign.month^""^HttpMonthlyCampaign.year),
+			Year = HttpMonthlyCampaign.year,
+			Month = HttpMonthlyCampaign.month,
+			LastDay = HttpMonthlyCampaign.lastDay,
+			Media = CampaignStruct::LibCampaignStruct_K_Media {
+				ButtonBackgroundUrl = HttpMonthlyCampaign.media.buttonBackgroundUrl,
+				ButtonForegroundUrl = HttpMonthlyCampaign.media.buttonForegroundUrl,
+				DecalUrl = HttpMonthlyCampaign.media.decalUrl,
+				PopUpBackgroundUrl = HttpMonthlyCampaign.media.popUpBackgroundUrl,
+				PopUpImageUrl = HttpMonthlyCampaign.media.popUpImageUrl,
+				LiveButtonBackgroundUrl = HttpMonthlyCampaign.media.liveButtonBackgroundUrl,
+				LiveButtonForegroundUrl = HttpMonthlyCampaign.media.liveButtonForegroundUrl
+			}
+		};
+		for (MonthDay, 0, MonthlyCampaign.LastDay-1) {
+			MonthlyCampaign.DailyMaps[MonthDay] = CampaignStruct::LibCampaignStruct_K_DailyMap {
+				MonthDay = MonthDay
+			};
+		}
+
+		foreach (HttpDailyMap in HttpMonthlyCampaign.days) {
+			MonthlyCampaign.DailyMaps[HttpDailyMap.monthDay-1] = CampaignStruct::LibCampaignStruct_K_DailyMap {
+				CampaignId = HttpDailyMap.campaignId,
+				SeasonId = HttpDailyMap.seasonUid,
+				Day = HttpDailyMap.day,
+				MonthDay = HttpDailyMap.monthDay,
+				Map = CampaignStruct::LibCampaignStruct_K_Map {
+					Uid = HttpDailyMap.mapUid
+				},
+				RelativeStart = HttpDailyMap.relativeStart,
+				RelativeEnd = HttpDailyMap.relativeEnd
+			};
+		}
+		ResponseMonthlyCampaignList.CampaignList.add(MonthlyCampaign);
+	}
+
+	return ResponseMonthlyCampaignList;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	return MV::Component(
+C_Name,
+"""
+""",
+"""
+#Include "TextLib" as {{{P}}}TL
+
+{{{dumptype(LibCampaignAPI_K_ResponseGetMonthlyCampaignList)}}}
+{{{dumptype(LibCampaignAPI_K_HttpResponseGetMonthlyCampaignList)}}}
+
+#Const {{{P}}}C_API_Campaign {{{dump(C_API_Campaign)}}}
+
+#Const {{{P}}}C_RouteParameter_CampaignId {{{dump(C_RouteParameter_CampaignId)}}}
+
+#Const {{{P}}}C_QueryParameter_Offset {{{dump(C_QueryParameter_Offset)}}}
+#Const {{{P}}}C_QueryParameter_Length {{{dump(C_QueryParameter_Length)}}}
+
+#Const {{{P}}}C_Route_GetMonth {{{dump(C_Route_GetMonth)}}}
+
+#Const {{{P}}}C_Headers {{{dump(C_Headers)}}}
+""",
+"""
+
+/** Start a request to get a list of monthly campaigns
+ *
+ *	@param	_ClubId										The Id of the club to fetch
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetMonthlyCampaignList(Integer _Offset, Integer _Length) {
+	declare Text[Text] QueryArray = [
+		{{{P}}}C_QueryParameter_Offset => ""^_Offset,
+		{{{P}}}C_QueryParameter_Length => ""^_Length
+	];
+	declare Text Query = {{{Http::P}}}CreateQueryString(QueryArray);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Campaign^{{{P}}}C_Route_GetMonth^Query, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMonthlyCampaignList request
+{{{P}}}K_ResponseGetMonthlyCampaignList {{{P}}}GetResponseFromGetMonthlyCampaignList({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpResponseGetMonthlyCampaignList HttpResponseGetMonthlyCampaignList;
+	HttpResponseGetMonthlyCampaignList.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{P}}}K_ResponseGetMonthlyCampaignList ResponseMonthlyCampaignList;
+	ResponseMonthlyCampaignList.CampaignsTotal = HttpResponseGetMonthlyCampaignList.itemCount;
+
+	foreach (HttpMonthlyCampaign in HttpResponseGetMonthlyCampaignList.monthList) {
+		declare MonthlyCampaign = {{{CampaignStruct::P}}}K_MonthlyCampaign {
+			Id = {{{P}}}TL::ToInteger(HttpMonthlyCampaign.month^""^HttpMonthlyCampaign.year),
+			Year = HttpMonthlyCampaign.year,
+			Month = HttpMonthlyCampaign.month,
+			LastDay = HttpMonthlyCampaign.lastDay,
+			Media = {{{CampaignStruct::P}}}K_Media {
+				ButtonBackgroundUrl = HttpMonthlyCampaign.media.buttonBackgroundUrl,
+				ButtonForegroundUrl = HttpMonthlyCampaign.media.buttonForegroundUrl,
+				DecalUrl = HttpMonthlyCampaign.media.decalUrl,
+				PopUpBackgroundUrl = HttpMonthlyCampaign.media.popUpBackgroundUrl,
+				PopUpImageUrl = HttpMonthlyCampaign.media.popUpImageUrl,
+				LiveButtonBackgroundUrl = HttpMonthlyCampaign.media.liveButtonBackgroundUrl,
+				LiveButtonForegroundUrl = HttpMonthlyCampaign.media.liveButtonForegroundUrl
+			}
+		};
+		for (MonthDay, 0, {{{Consts::C_MonthDay_Total}}}-1) {
+			MonthlyCampaign.DailyMaps[MonthDay] = {{{CampaignStruct::P}}}K_DailyMap {
+				MonthDay = MonthDay
+			};
+		}
+		foreach (HttpDailyMap in HttpMonthlyCampaign.days) {
+			MonthlyCampaign.DailyMaps[HttpDailyMap.monthDay-1] = {{{CampaignStruct::P}}}K_DailyMap {
+				CampaignId = HttpDailyMap.campaignId,
+				SeasonId = HttpDailyMap.seasonUid,
+				Day = HttpDailyMap.day,
+				MonthDay = HttpDailyMap.monthDay,
+				Map = {{{CampaignStruct::P}}}K_Map {
+					Uid = HttpDailyMap.mapUid
+				},
+				RelativeStart = HttpDailyMap.relativeStart,
+				RelativeEnd = HttpDailyMap.relativeEnd
+			};
+		}
+		ResponseMonthlyCampaignList.CampaignList.add(MonthlyCampaign);
+	}
+
+	return ResponseMonthlyCampaignList;
+}
+""",
+[
+	Http::Component(),
+	CampaignStruct::Component(),
+	HttpStruct::Component(),
+	Config::Component()
+],
+[]
+);
+}

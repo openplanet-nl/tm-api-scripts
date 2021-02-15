@@ -1,0 +1,1061 @@
+/**
+ *	API for Competition
+ */
+#Const Version		"2020-11-23"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/CompetitionAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/HttpStruct.Script.txt" as HttpStruct
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CompetitionStruct.Script.txt" as CompetitionStruct
+#Include "Libs/Nadeo/CommonLibs/Common/HttpClubAuthorizationHeader.Script.txt" as HttpClubAuthorizationHeader
+#Include "Libs/Nadeo/CommonLibs/Common/HttpServerAuthorizationHeader.Script.txt" as HttpServerAuthorizationHeader
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-competition-api" //< Component name
+#Const P "ComponentCompetitionAPI_" //< Prefix use to differentiate functions/variables in the script
+
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+/* COMPETITION API */
+#Const C_API_ClubCompetition "/api/club-competitions"
+#Const C_API_Match "/api/matches"
+#Const C_API_Challenge "/api/challenges"
+#Const C_API_Competition "/api/competitions"
+#Const C_Route_GetClubCompetitions "/api/token/club/competition"
+#Const C_Route_GetMyClubCompetitions "/api/me/club-competitions"
+#Const C_Route_GetRoundMatches "/api/rounds/:Round/matches"
+#Const C_Route_GetMatchesResults "/api/matches/:Match/results"
+#Const C_Route_GetParticipantMatches "/:Competition/participants/:Participant/matches"
+#Const C_Route_GetMyClubCompetitionsCurrent "/api/me/club-competitions/current"
+#Const C_Route_GetClubCompetition "/:ActivityId"
+#Const C_Route_GetChallenge "/:Challenge"
+#Const C_Route_GetChallengeLeaderboard "/:Challenge/leaderboard"
+#Const C_Route_GetChallengePlayersResults "/:Challenge/leaderboard/players"
+#Const C_Route_GetChallengeMapPlayersResults "/:Challenge/records/players"
+#Const C_Route_GetCompetitionLeaderboard "/:Competition/leaderboard"
+#Const C_Route_GetCompetitionParticipantsLeaderboard "/:Competition/leaderboard/participants"
+#Const C_Route_PostCompetitionCreate "/create"
+#Const C_Route_PostRegisterACurrentPlayer "/:ActivityId/register"
+#Const C_Route_GetMatchByCurrentMatchId "/:CurrentMatchId"
+#Const C_Route_PostUploadImgVertical "/:ActivityId/upload/vertical"
+#Const C_Route_PostUploadImgLogo "/:ActivityId/upload/logo"
+
+/* CLUB API */
+#Const C_Route_GetMyMatches "/api/me/matches"
+#Const C_Route_GetPlayersJoinLinks "/api/join/players"
+
+#Const C_RouteParameter_ActivityId "ActivityId"
+#Const C_RouteParameter_Challenge "Challenge"
+#Const C_RouteParameter_Competition "Competition"
+#Const C_RouteParameter_Round "Round"
+#Const C_RouteParameter_Match "Match"
+#Const C_QueryParameter_Offset "offset"
+#Const C_QueryParameter_Length "length"
+#Const C_QueryParameter_Players "players"
+#Const C_QueryParameter_Participants "participants"
+#Const C_QueryParameter_NotCompleted "not_completed"
+#Const C_QueryParameter_Group "group"
+#Const C_RouteParameter_CurrentMatch "CurrentMatchId"
+#Const C_RouteParameter_Participant "Participant"
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+/* COMPETITION API */
+#Struct ComponentCompetitionAPI_K_Error {
+	Text app_code;
+	Text message;
+	Text exception;
+}
+
+#Struct ComponentCompetitionAPI_K_ClubCompetitionScriptSettingsType {
+	Text name;
+	Text value;
+	Text type;
+}
+
+#Struct ComponentCompetitionAPI_K_ClubCompetitionZone {
+	Text zone;
+}
+
+#Struct ComponentCompetitionAPI_K_Map {
+	Text url;
+	Text ident;
+}
+
+#Struct ComponentCompetitionAPI_K_HttpCreateCompetition {
+	Integer club_id;
+	Text name;
+	Text description;
+	Text start_date;
+	Integer nb_players_per_match;
+	Integer nb_players;
+	Text mode;
+	ComponentCompetitionAPI_K_Map[] competition_maps;
+	ComponentCompetitionAPI_K_ClubCompetitionScriptSettingsType[] script_settings;
+	Text qualifier_start_date;
+	Text qualifier_end_date;
+	Text registrations_start_date;
+	Text registrations_end_date;
+	ComponentCompetitionAPI_K_Map[] qualifier_maps;
+}
+
+#Struct ComponentCompetitionAPI_K_PlayerChallengeServer {
+	Integer position;
+	Text join_link;
+}
+
+#Struct ComponentCompetitionAPI_K_PlayerChallenge {
+	Integer id;
+	Text name;
+	Text start_date;
+	Text end_date;
+	Boolean is_completed;
+	ComponentCompetitionAPI_K_PlayerChallengeServer[] servers;
+}
+
+#Struct ComponentCompetitionAPI_K_HttpCompetitionRound {
+	Integer id;
+	Text name;
+	Integer position;
+	Text status;
+	Text start_date;
+	Text end_date;
+	Integer nb_matches;
+	ComponentCompetitionAPI_K_PlayerChallenge qualifier_challenge;
+}
+
+#Struct ComponentCompetitionAPI_K_Competition {
+	Integer id;
+	Integer leaderboard_id;
+	Text name;
+	Text description;
+	Text registration_start;
+	Text registration_end;
+	Text start_date;
+	Text end_date;
+	Text rules_url;
+	Text logo_url;
+	Integer nb_players;
+	Text live_id;
+	Text matches_generation_date;
+}
+
+#Struct ComponentCompetitionAPI_K_ClubCompetition {
+	Integer activity_id;
+	Integer club_id;
+	Text external_registration_url;
+	Text type;
+	ComponentCompetitionAPI_K_Competition competition;
+}
+
+#Struct ComponentCompetitionAPI_K_Participant {
+	Text participant;
+}
+
+#Struct ComponentCompetitionAPI_K_CompetitionPlayerLeaderBoard {
+	Text participant;
+	Integer score;
+	Integer rank;
+	Text zone;
+}
+
+#Struct ComponentCompetitionAPI_ParticipantLeaderboardResults {
+	Integer competition_id;
+	Text zone;
+	ComponentCompetitionAPI_K_CompetitionPlayerLeaderBoard[] results;
+}
+
+#Struct ComponentCompetitionAPI_K_PlayerClubCompetition {
+	ComponentCompetitionAPI_K_ClubCompetition club_competition;
+	ComponentCompetitionAPI_K_HttpCompetitionRound[] rounds;
+	ComponentCompetitionAPI_K_Participant participant;
+	Text current_match_live_id;
+	ComponentCompetitionAPI_K_PlayerChallenge current_qualifier_challenge;
+}
+
+#Struct ComponentCompetitionAPI_K_Challenge {
+	Integer id;
+	Text name;
+	Text start_date;
+	Text end_date;
+	Text status;
+}
+
+#Struct ComponentCompetitionAPI_K_PlayerChallengeResult {
+	Text player;
+	Integer score;
+	Integer rank;
+	Text zone;
+}
+
+#Struct ComponentCompetitionAPI_K_PlayerChallengeMapResult_Entry {
+	Text uid;
+	Integer score;
+	Integer rank;
+}
+
+#Struct ComponentCompetitionAPI_K_PlayerChallengeMapResult {
+	Text player;
+	ComponentCompetitionAPI_K_PlayerChallengeMapResult_Entry[] records;
+}
+
+#Struct ComponentCompetitionAPI_K_ChallengeResults {
+	Integer challenge_id;
+	Integer cardinal;
+	Text score_unit;
+	ComponentCompetitionAPI_K_PlayerChallengeResult[] results;
+}
+
+#Struct ComponentCompetitionAPI_K_Match {
+	Integer id;
+	Text name;
+	Text club_match_live_id;
+	Boolean is_completed;
+}
+
+#Struct ComponentCompetitionAPI_K_MatchList {
+	ComponentCompetitionAPI_K_Match[] matches;
+}
+
+#Struct ComponentCompetitionAPI_K_MatchParticipant {
+	Text participant;
+	Integer score;
+	Integer rank;
+	Text zone;
+}
+
+#Struct ComponentCompetitionAPI_K_MatchResults {
+	Text match_live_id;
+	Integer round_position;
+	ComponentCompetitionAPI_K_MatchParticipant[] results;
+	Text score_unit;
+}
+
+#Struct ComponentCompetitionAPI_K_HttpMyClubCompetitionShort {
+	Integer activity_id;
+	Integer club_id;
+	Integer max_players;
+	Text type;
+	Text name;
+	Text logo_url;
+	Text vertical_url;
+}
+
+#Struct ComponentCompetitionAPI_K_HttpResponseGetMyClubCompetitions {
+	ComponentCompetitionAPI_K_HttpMyClubCompetitionShort[] club_competitions;
+	// @TODO Not implemented server side yet.
+	//Integer clubCompetitionsCount;
+}
+
+#Struct ComponentCompetitionAPI_K_HttpClubCompetitionShort {
+	Integer competitionId;
+	Text mediaUrl;
+	Integer id;
+	Integer clubId;
+	Text name;
+}
+
+#Struct ComponentCompetitionAPI_K_HttpResponseGetClubCompetitions {
+	ComponentCompetitionAPI_K_HttpClubCompetitionShort[] clubCompetitionList;
+	Integer itemCount;
+}
+
+#Struct ComponentCompetitionAPI_K_ResponseGetClubCompetitions {
+	CompetitionStruct::LibStructuresCompetition_K_ClubCompetitionShort[] ClubCompetitions;
+	// @TODO Not implemented server side for both routes (GetMyCompetitions & GetCompetitions) yet.
+	Integer ClubCompetitionsTotal;
+}
+
+/* CLUB API */
+#Struct ComponentCompetitionAPI_K_PlayerNextMatch {
+	Text live_id;
+	Text name;
+	Text join_link;
+	Boolean is_spectator;
+	Text end_date;
+	Text start_date;
+}
+
+#Struct ComponentCompetitionAPI_K_PlayerNextMatches {
+	ComponentCompetitionAPI_K_PlayerNextMatch[] matches;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Text[Text] GetHeaders() {
+	declare Text[Text] Headers = C_Headers;
+	declare Text AuthorizationHeaders = HttpClubAuthorizationHeader::Get();
+	declare Text KeyAutho = TL::SubString(AuthorizationHeaders, 0, TL::Length("Authorization"));
+	declare Text ValueAutho = TL::SubString(AuthorizationHeaders, TL::Length("Authorization: "), TL::Length(AuthorizationHeaders));
+	Headers[KeyAutho] = ValueAutho;
+	return Headers;
+}
+
+/** Start a request to get a list of club competitions
+ *
+ *	@param	_Sort										The sort option
+ *	@param	_Order										The sort order
+ *	@param	_FilterName									The name to filter
+ *	@param	_IsMember									True to return club competitions of the main user, False for all clubs
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubCompetitions(Text _Sort, Text _Order, Text _FilterName, Integer _IsMember, Integer _Offset, Integer _Length) {
+	// @TODO Query params not implemented server side yet.
+	
+	if (_IsMember == 0) { //pour l'instant pas de offsetlength dans MyCompetitions
+	
+		declare Text[Text] Query = [
+			C_QueryParameter_Offset => ""^_Offset,
+			C_QueryParameter_Length => ""^_Length
+		];
+		
+		/*if (_Sort != "") {
+			Query[C_QueryParameter_Sort] = _Sort;
+		}
+		if (_Order != "") {
+			Query[C_QueryParameter_Order] = _Order;
+		}
+		if (_FilterName != "") {
+			Query[C_QueryParameter_Name] = _FilterName;
+		}*/
+		declare Text QueryString = Http::CreateQueryString(Query);
+		
+		declare Text Url = Config::Get().APIBaseUrl^C_Route_GetClubCompetitions^QueryString;
+		return Http::CreateGet(Url, C_Headers);
+	}
+	
+	if (_IsMember == 2) {  //ALl competitions where player is registered
+
+		declare Text[Text] Query = [
+			C_QueryParameter_Offset => ""^_Offset,
+			C_QueryParameter_Length => ""^_Length
+		];
+		
+		/*if (_Sort != "") {
+			Query[C_QueryParameter_Sort] = _Sort;
+		}
+		if (_Order != "") {
+			Query[C_QueryParameter_Order] = _Order;
+		}
+		if (_FilterName != "") {
+			Query[C_QueryParameter_Name] = _FilterName;
+		}*/
+		declare Text QueryString = Http::CreateQueryString(Query);
+		declare Text Url = Config::Get().APICompetitionUrl^C_Route_GetMyClubCompetitions^QueryString;
+		return Http::CreateGet(Url, GetHeaders());
+	}
+
+	declare Text Url = Config::Get().APICompetitionUrl^C_Route_GetMyClubCompetitionsCurrent; //^QueryString;
+	return Http::CreateGet(Url, GetHeaders());
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Get a Challenge from API
+Http::LibCommonHttp_K_Request Server_GetChallenge(Text _ChallengeId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetChallenge, [C_RouteParameter_Challenge => _ChallengeId]);
+
+	return Http::CreateGet(Config::Get().APICompetitionUrl^C_API_Challenge^Route, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Get a Challenge result for the given players
+Http::LibCommonHttp_K_Request Server_GetChallengePlayersResults(Text _ChallengeId, Text[] _AccountIds) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetChallengePlayersResults, [C_RouteParameter_Challenge => _ChallengeId]);
+
+	declare Query = Http::CreateQueryString([C_QueryParameter_Players => _AccountIds]);
+
+	return Http::CreateGet(Config::Get().APICompetitionUrl^C_API_Challenge^Route^Query, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
+}
+
+ComponentCompetitionAPI_K_ChallengeResults GetResponseFromGetChallengePlayersResults(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentCompetitionAPI_K_ChallengeResults Result;
+	Result.fromjson(Http::GetResult(_Request));
+	return Result;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Get a Challenge result maps by maps for the given players
+Http::LibCommonHttp_K_Request Server_GetChallengeMapPlayersResults(Text _ChallengeId, Text[] _AccountIds) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetChallengeMapPlayersResults, [C_RouteParameter_Challenge => _ChallengeId]);
+
+	declare Query = Http::CreateQueryString([C_QueryParameter_Players => _AccountIds]);
+
+	return Http::CreateGet(Config::Get().APICompetitionUrl^C_API_Challenge^Route^Query, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
+}
+
+ComponentCompetitionAPI_K_PlayerChallengeMapResult[] GetResponseFromGetChallengePlayersMapsResults(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentCompetitionAPI_K_PlayerChallengeMapResult[] Result;
+	Result.fromjson(Http::GetResult(_Request));
+	return Result;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Get join link of given players current matches
+Http::LibCommonHttp_K_Request Server_GetPlayersJoinLinks(Text[] _AccountIds, Text _GroupId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetPlayersJoinLinks, []);
+
+	declare Query = Http::CreateQueryString(["group" => _GroupId], [C_QueryParameter_Players => _AccountIds]);
+
+	return Http::CreateGet(Config::Get().APIBordeauxClubUrl^Route^Query, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
+}
+
+Text[Text] GetResponseFromGetPlayersJoinLinks(Http::LibCommonHttp_K_Request _Request) {
+	declare Text[Text] Result;
+	Result.fromjson(Http::GetResult(_Request));
+	return Result;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubCompetitions request with IsMember
+ComponentCompetitionAPI_K_ResponseGetClubCompetitions GetResponseFromGetClubCompetitions(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentCompetitionAPI_K_ResponseGetClubCompetitions ResponseGetClubCompetitions;
+	declare ComponentCompetitionAPI_K_HttpResponseGetClubCompetitions HttpResponseGetClubCompetitions;
+	HttpResponseGetClubCompetitions.fromjson(Http::GetResult(_Request));
+	foreach (Competition in HttpResponseGetClubCompetitions.clubCompetitionList) {
+		ResponseGetClubCompetitions.ClubCompetitions.add(CompetitionStruct::LibStructuresCompetition_K_ClubCompetitionShort {
+			ClubId = Competition.clubId,
+			ActivityId = Competition.id,
+			Name = Competition.name,
+			LogoUrl = Competition.mediaUrl,
+			VerticalUrl = ""
+		});
+	}
+	ResponseGetClubCompetitions.ClubCompetitionsTotal = HttpResponseGetClubCompetitions.itemCount;
+	return ResponseGetClubCompetitions;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubCompetitions request with !IsMember
+ComponentCompetitionAPI_K_ResponseGetClubCompetitions GetResponseFromGetMyClubCompetitions(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentCompetitionAPI_K_ResponseGetClubCompetitions ResponseGetClubCompetitions;
+	declare ComponentCompetitionAPI_K_HttpResponseGetMyClubCompetitions HttpResponseGetClubCompetitions;
+	HttpResponseGetClubCompetitions.fromjson(Http::GetResult(_Request));
+	
+	declare Integer Count = 0;
+	foreach (Competition in HttpResponseGetClubCompetitions.club_competitions) {
+		ResponseGetClubCompetitions.ClubCompetitions.add(CompetitionStruct::LibStructuresCompetition_K_ClubCompetitionShort {
+			ClubId = Competition.club_id,
+			ActivityId = Competition.activity_id,
+			MaxPlayers = Competition.max_players,
+			Name = Competition.name,
+			LogoUrl = Competition.logo_url,
+			VerticalUrl = Competition.vertical_url
+		});
+		Count += 1;
+	}
+	ResponseGetClubCompetitions.ClubCompetitionsTotal = Count; // @TODO not implemented serverside yet
+	return ResponseGetClubCompetitions;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	return MV::Component(
+C_Name,
+"""
+""",
+"""
+#Include "TextLib" as {{{P}}}TL
+/* COMPETITION API */
+#Const {{{P}}}C_Headers {{{dump(C_Headers)}}}
+#Const {{{P}}}C_API_ClubCompetition {{{dump(C_API_ClubCompetition)}}}
+#Const {{{P}}}C_API_Match {{{dump(C_API_Match)}}}
+#Const {{{P}}}C_API_Challenge {{{dump(C_API_Challenge)}}}
+#Const {{{P}}}C_API_Competition {{{dump(C_API_Competition)}}}
+#Const {{{P}}}C_Route_PostCompetitionCreate {{{dump(C_Route_PostCompetitionCreate)}}}
+#Const {{{P}}}C_Route_GetClubCompetition {{{dump(C_Route_GetClubCompetition)}}}
+#Const {{{P}}}C_Route_GetChallengeLeaderboard {{{dump(C_Route_GetChallengeLeaderboard)}}}
+#Const {{{P}}}C_Route_GetChallengePlayersResults {{{dump(C_Route_GetChallengePlayersResults)}}}
+#Const {{{P}}}C_Route_GetCompetitionLeaderboard {{{dump(C_Route_GetCompetitionLeaderboard)}}}
+#Const {{{P}}}C_Route_GetCompetitionParticipantsLeaderboard {{{dump(C_Route_GetCompetitionParticipantsLeaderboard)}}}
+#Const {{{P}}}C_Route_PostRegisterACurrentPlayer {{{dump(C_Route_PostRegisterACurrentPlayer)}}}
+#Const {{{P}}}C_Route_GetMatchByCurrentMatchId {{{dump(C_Route_GetMatchByCurrentMatchId)}}}
+#Const {{{P}}}C_Route_PostUploadImgVertical {{{dump(C_Route_PostUploadImgVertical)}}}
+#Const {{{P}}}C_Route_PostUploadImgLogo {{{dump(C_Route_PostUploadImgLogo)}}}
+#Const {{{P}}}C_Route_GetRoundMatches {{{dump(C_Route_GetRoundMatches)}}}
+#Const {{{P}}}C_Route_GetParticipantMatches {{{dump(C_Route_GetParticipantMatches)}}}
+#Const {{{P}}}C_Route_GetMatchesResults {{{dump(C_Route_GetMatchesResults)}}}
+#Const {{{P}}}C_RouteParameter_ActivityId {{{dump(C_RouteParameter_ActivityId)}}}
+#Const {{{P}}}C_RouteParameter_Challenge {{{dump(C_RouteParameter_Challenge)}}}
+#Const {{{P}}}C_RouteParameter_Competition {{{dump(C_RouteParameter_Competition)}}}
+#Const {{{P}}}C_RouteParameter_Participant {{{dump(C_RouteParameter_Participant)}}}
+#Const {{{P}}}C_RouteParameter_Round {{{dump(C_RouteParameter_Round)}}}
+#Const {{{P}}}C_RouteParameter_Match {{{dump(C_RouteParameter_Match)}}}
+#Const {{{P}}}C_RouteParameter_CurrentMatch {{{dump(C_RouteParameter_CurrentMatch)}}}
+#Const {{{P}}}C_QueryParameter_Offset {{{dump(C_QueryParameter_Offset)}}}
+#Const {{{P}}}C_QueryParameter_Length {{{dump(C_QueryParameter_Length)}}}
+#Const {{{P}}}C_QueryParameter_Players {{{dump(C_QueryParameter_Players)}}}
+#Const {{{P}}}C_QueryParameter_Participants {{{dump(C_QueryParameter_Participants)}}}
+
+/* CLUB API */
+#Const {{{P}}}C_Route_GetMyMatches {{{dump(C_Route_GetMyMatches)}}}
+#Const {{{P}}}C_QueryParameter_NotCompleted {{{dump(C_QueryParameter_NotCompleted)}}}
+#Const {{{P}}}C_QueryParameter_Group {{{dump(C_QueryParameter_Group)}}}
+
+{{{dumptype(ComponentCompetitionAPI_K_ClubCompetitionScriptSettingsType)}}}
+{{{dumptype(ComponentCompetitionAPI_K_Error)}}}
+{{{dumptype(ComponentCompetitionAPI_K_ClubCompetitionZone)}}}
+{{{dumptype(ComponentCompetitionAPI_K_Map)}}}
+{{{dumptype(ComponentCompetitionAPI_K_HttpCreateCompetition)}}}
+{{{dumptype(ComponentCompetitionAPI_K_PlayerChallengeServer)}}}
+{{{dumptype(ComponentCompetitionAPI_K_PlayerChallenge)}}}
+{{{dumptype(ComponentCompetitionAPI_K_HttpCompetitionRound)}}}
+{{{dumptype(ComponentCompetitionAPI_K_CompetitionPlayerLeaderBoard)}}}
+{{{dumptype(ComponentCompetitionAPI_ParticipantLeaderboardResults)}}}
+{{{dumptype(ComponentCompetitionAPI_K_Competition)}}}
+{{{dumptype(ComponentCompetitionAPI_K_ClubCompetition)}}}
+{{{dumptype(ComponentCompetitionAPI_K_Participant)}}}
+{{{dumptype(ComponentCompetitionAPI_K_PlayerClubCompetition)}}}
+{{{dumptype(ComponentCompetitionAPI_K_PlayerChallengeResult)}}}
+{{{dumptype(ComponentCompetitionAPI_K_ChallengeResults)}}}
+{{{dumptype(ComponentCompetitionAPI_K_Match)}}}
+{{{dumptype(ComponentCompetitionAPI_K_MatchList)}}}
+{{{dumptype(ComponentCompetitionAPI_K_MatchParticipant)}}}
+{{{dumptype(ComponentCompetitionAPI_K_MatchResults)}}}
+
+{{{dumptype(ComponentCompetitionAPI_K_PlayerNextMatch)}}}
+{{{dumptype(ComponentCompetitionAPI_K_PlayerNextMatches)}}}
+
+""",
+"""
+/* COMPETITION API */
+
+Text[Text] {{{P}}}GetHeaders() {
+	declare Text[Text] Headers = {{{P}}}C_Headers;
+	declare Text AuthorizationHeaders = {{{HttpClubAuthorizationHeader::P}}}Get();
+	declare Text KeyAutho = {{{P}}}TL::SubString(AuthorizationHeaders, 0, 13);
+	declare Text ValueAutho = {{{P}}}TL::SubString(AuthorizationHeaders, 15, {{{P}}}TL::Length(AuthorizationHeaders));
+	Headers[KeyAutho] = ValueAutho;
+	return Headers;
+}
+
+Text[Text] {{{P}}}GetHeaderImg() {
+	declare Text[Text] Header;
+	declare Text AuthorizationHeaders = {{{HttpClubAuthorizationHeader::P}}}Get();
+	declare Text KeyAutho = {{{P}}}TL::SubString(AuthorizationHeaders, 0, 13);
+	declare Text ValueAutho = {{{P}}}TL::SubString(AuthorizationHeaders, 15, {{{P}}}TL::Length(AuthorizationHeaders));
+	Header[KeyAutho] = ValueAutho;
+	return Header;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a Leaderboard From Competition Id 
+	*
+	* @param _Competition								The id of competition
+	*
+	* @return 													The request 
+*/
+{{{Http::P}}}K_Request  {{{P}}}GetCompetitionLeaderboardFromId(Integer _CompetitionId, Integer _OffSet, Integer _Length) {
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Offset => ""^_OffSet,
+		{{{P}}}C_QueryParameter_Length => ""^_Length
+	]);
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetCompetitionLeaderboard,
+		[{{{P}}}C_RouteParameter_Competition => ""^_CompetitionId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_Competition^Route^QueryString, {{{P}}}GetHeaders());
+}
+
+// Parse the response to the request GetCompetitionLeaderBoardFromId
+{{{CompetitionStruct::P}}}K_ParticipantResult[] {{{P}}}GetResponseFromCompetitionLeaderboardFromId({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_CompetitionPlayerLeaderBoard[] CompetitionLeaderBoard; 
+	CompetitionLeaderBoard.fromjson({{{Http::P}}}GetResult(_Request)); 
+	declare {{{CompetitionStruct::P}}}K_ParticipantResult[] LeaderBoard; 
+	foreach (Result in CompetitionLeaderBoard) {
+		LeaderBoard.add({{{CompetitionStruct::P}}}K_ParticipantResult {
+			AccountId = Result.participant,
+			DisplayName = "",
+			Score = Result.score,
+			Rank = Result.rank,
+			Zone = Result.zone
+		});
+	}
+	return LeaderBoard;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a competition Leaderboard for the given players
+	*
+	* @param _Competition								The id of competition
+	*	@param	_AccountIds								The array of the players accountIds
+	*
+	* @return 													The request 
+*/
+{{{Http::P}}}K_Request  {{{P}}}GetCompetitionParticipantsLeaderboard(Integer _CompetitionId, Text[] _AccountIds) {
+	declare QueryString ={{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Participants => _AccountIds
+	]);
+
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetCompetitionParticipantsLeaderboard,
+		[{{{P}}}C_RouteParameter_Competition => ""^_CompetitionId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_Competition^Route^QueryString, {{{P}}}GetHeaders());
+}
+
+{{{CompetitionStruct::P}}}K_ParticipantLeaderboardResults {{{P}}}GetResponseFromGetCompetitionParticipantsLeaderboard({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_ParticipantLeaderboardResults GetResponseForParticipantLeaderboard;
+	GetResponseForParticipantLeaderboard.fromjson({{{Http::P}}}GetResult(_Request));
+	declare ComponentCompetitionAPI_K_CompetitionPlayerLeaderBoard[] Results = GetResponseForParticipantLeaderboard.results;
+
+	declare {{{CompetitionStruct::P}}}K_ParticipantLeaderboardResults ParticipantLeaderboardResults = {{{CompetitionStruct::P}}}K_ParticipantLeaderboardResults {
+		CompetitionId = GetResponseForParticipantLeaderboard.competition_id,
+		Zone = GetResponseForParticipantLeaderboard.zone,
+		Results = []
+	};
+	foreach (Result in Results) {
+		ParticipantLeaderboardResults.Results.add({{{CompetitionStruct::P}}}K_ParticipantResult {
+			AccountId = Result.participant,
+			DisplayName = "",
+			Score = Result.score,
+			Rank = Result.rank,
+			Zone = Result.zone
+		});
+	}
+	return ParticipantLeaderboardResults;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a Leaderboard From Challenge id
+ *
+ *	@param	_ChallengeId							The id of Challenge
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetLeaderboardFromId(Integer _ChallengeId, Integer _Offset, Integer _Length) {
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Offset => ""^_Offset,
+		{{{P}}}C_QueryParameter_Length => ""^_Length
+	]);
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetChallengeLeaderboard,
+		[{{{P}}}C_RouteParameter_Challenge => ""^_ChallengeId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_Challenge^Route^QueryString, {{{P}}}GetHeaders());
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a Leaderboard Challenge for the given players
+ *
+ *	@param	_ChallengeId							The id of Challenge
+ *	@param	_AccountIds								The array of the players accountIds
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetChallengePlayersResults(Integer _ChallengeId, Text[] _AccountIds) {	
+	declare QueryString ={{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Players => _AccountIds
+	]);
+
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetChallengePlayersResults,
+		[{{{P}}}C_RouteParameter_Challenge => ""^_ChallengeId]
+	);
+
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_Challenge^Route^QueryString, {{{P}}}GetHeaders());
+}
+
+{{{CompetitionStruct::P}}}K_ChallengeResults {{{P}}}GetResponseFromGetLeaderboardChallenge({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_ChallengeResults GetResponseForChallenge;
+	GetResponseForChallenge.fromjson({{{Http::P}}}GetResult(_Request));
+	declare ComponentCompetitionAPI_K_PlayerChallengeResult[] Results = GetResponseForChallenge.results;
+
+	declare {{{CompetitionStruct::P}}}K_ChallengeResults ChallengeResults = {{{CompetitionStruct::P}}}K_ChallengeResults {
+		ChallengeId = GetResponseForChallenge.challenge_id,
+		Cardinal = GetResponseForChallenge.cardinal,
+		ScoreUnit = GetResponseForChallenge.score_unit,
+		Results = []
+	};
+	foreach (Result in Results) {
+		ChallengeResults.Results.add({{{CompetitionStruct::P}}}K_ParticipantResult {
+			AccountId = Result.player,
+			DisplayName = "",
+			Score = Result.score,
+			Rank = Result.rank,
+			Zone = Result.zone
+		});
+	}
+	return ChallengeResults;
+}
+
+/** Start a request to get the matchs From Round id
+ *
+ *	@param	_RoundId									The id of Round
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetMatchesFromRoundId(Integer _RoundId, Integer _Offset, Integer _Length) {
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Offset => ""^_Offset,
+		{{{P}}}C_QueryParameter_Length => ""^_Length
+	]);
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetRoundMatches,
+		[{{{P}}}C_RouteParameter_Round => ""^_RoundId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^Route^QueryString, {{{P}}}GetHeaders());
+}
+
+{{{CompetitionStruct::P}}}K_MatchList {{{P}}}GetResponseFromGetMatchesFromRoundId({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_MatchList GetResponseForRoundMatches;
+	GetResponseForRoundMatches.fromjson({{{Http::P}}}GetResult(_Request));
+	declare {{{CompetitionStruct::P}}}K_MatchList RoundMatches;
+	foreach (Match in GetResponseForRoundMatches.matches) {
+		RoundMatches.Matches.add({{{CompetitionStruct::P}}}K_Match {
+			Id = Match.id,
+			Name = Match.name,
+			LiveId = Match.club_match_live_id,
+			IsCompleted = Match.is_completed,
+			LocalUserParticipation = False
+		});
+	}
+	return RoundMatches;
+}
+
+/** Start a request to get the matchs results of a participant in a competition
+ *
+ *	@param	_CompetitionId						The id of Competition
+ *	@param	_ParticipantId						The id of Participant
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetCompetitionMatchesResultsFromParticipantId(Integer _CompetitionId, Text _ParticipantId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetParticipantMatches,
+		[
+			{{{P}}}C_RouteParameter_Competition => ""^_CompetitionId,
+			{{{P}}}C_RouteParameter_Participant => ""^_ParticipantId
+		]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_Competition^Route, {{{P}}}GetHeaders());
+}
+
+{{{CompetitionStruct::P}}}K_MatchResults[] {{{P}}}GetResponseFromGetCompetitionMatchesResultsFromParticipantId({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_MatchResults[] GetResponseForMatchesResults;
+	GetResponseForMatchesResults.fromjson({{{Http::P}}}GetResult(_Request));
+	declare {{{CompetitionStruct::P}}}K_MatchResults[] ParticipantMatchResults;
+
+	foreach (MatchResult in GetResponseForMatchesResults) {
+		declare {{{CompetitionStruct::P}}}K_ParticipantResult[] Results;
+		foreach (Result in MatchResult.results) {
+			Results.add({{{CompetitionStruct::P}}}K_ParticipantResult {
+				AccountId = Result.participant,
+				DisplayName = "",
+				Rank = Result.rank,
+				Score = Result.score,
+				Zone = Result.zone
+			});
+		}
+		ParticipantMatchResults.add({{{CompetitionStruct::P}}}K_MatchResults {
+			MatchLiveId = MatchResult.match_live_id,
+			RoundPosition = MatchResult.round_position,
+			Results = Results,
+			ScoreUnit = MatchResult.score_unit
+		});
+	}
+	return ParticipantMatchResults;
+}
+
+/** Start a request to get the matchs results From Match id
+ *
+ *	@param	_MatchId									The id of Match
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetMatchesResultsFromMatchId(Integer _MatchId, Integer _OffSet, Integer _Length) {
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Offset => ""^_OffSet,
+		{{{P}}}C_QueryParameter_Length => ""^_Length
+	]);
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetMatchesResults,
+		[{{{P}}}C_RouteParameter_Match => ""^_MatchId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^Route^QueryString, {{{P}}}GetHeaders());
+}
+
+{{{CompetitionStruct::P}}}K_MatchResults {{{P}}}GetResponseFromGetMatchesResultsFromMatchId({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_MatchResults GetResponseForMatchesResults;
+	GetResponseForMatchesResults.fromjson({{{Http::P}}}GetResult(_Request));
+	declare ComponentCompetitionAPI_K_MatchParticipant[] Results = GetResponseForMatchesResults.results;
+
+	declare {{{CompetitionStruct::P}}}K_MatchResults MatchResults = {{{CompetitionStruct::P}}}K_MatchResults {
+		MatchLiveId = GetResponseForMatchesResults.match_live_id,
+		RoundPosition = GetResponseForMatchesResults.round_position,
+		Results = [],
+		ScoreUnit = GetResponseForMatchesResults.score_unit
+	};
+	foreach (Result in Results) {
+		MatchResults.Results.add({{{CompetitionStruct::P}}}K_ParticipantResult {
+			AccountId = Result.participant,
+			DisplayName = "",
+			Rank = Result.rank,
+			Score = Result.score,
+			Zone = Result.zone
+		});
+	}
+	return MatchResults;
+}
+
+/** Start a request to add a current player
+ *
+ *	@param	_ActivityId								The id of Activity
+ *
+ *	@return														The request
+*/
+{{{Http::P}}}K_Request {{{P}}}PostAddPlayerToCompetition(Integer _ActivityId, Text _Zone) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_PostRegisterACurrentPlayer,
+	[
+		{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+	]);
+
+	declare {{{P}}}K_ClubCompetitionZone Zone = {{{P}}}K_ClubCompetitionZone {
+		zone = _Zone
+	};
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_ClubCompetition^Route, Zone.tojson(), {{{P}}}GetHeaders());
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a Competition From id
+ *
+ *	@param	_ActivityId								The id of Activity
+ *
+ *	@return														The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetCompetitionFromId(Integer _ActivityId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetClubCompetition,
+	[{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_ClubCompetition^Route, {{{P}}}GetHeaders());
+}
+
+{{{CompetitionStruct::P}}}K_ClubCompetition {{{P}}}GetResponseFromGetCompetitionFromId({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_PlayerClubCompetition GetResponseForCompetition;
+	GetResponseForCompetition.fromjson({{{Http::P}}}GetResult(_Request));
+	declare ComponentCompetitionAPI_K_ClubCompetition ClubCompetitionAPI = GetResponseForCompetition.club_competition;
+	declare ComponentCompetitionAPI_K_HttpCompetitionRound[] Rounds = GetResponseForCompetition.rounds;
+	declare ComponentCompetitionAPI_K_PlayerChallengeServer[] QualifierChallengeServers = GetResponseForCompetition.current_qualifier_challenge.servers;
+	declare ComponentCompetitionAPI_K_Competition CompetitionAPI = ClubCompetitionAPI.competition;
+
+	declare {{{CompetitionStruct::P}}}K_ClubCompetition ClubCompetition = {{{CompetitionStruct::P}}}K_ClubCompetition {
+		ActivityId = ClubCompetitionAPI.activity_id,
+		ClubId = ClubCompetitionAPI.club_id,
+		Name = CompetitionAPI.name,
+		Description = CompetitionAPI.description,
+		StartDate = CompetitionAPI.start_date,
+		EndDate = CompetitionAPI.end_date,
+		RegistrationStart = CompetitionAPI.registration_start,
+		RegistrationEnd = CompetitionAPI.registration_end,
+		NbPlayers = CompetitionAPI.nb_players,
+		RulesUrl = CompetitionAPI.rules_url,
+		LogoUrl = CompetitionAPI.logo_url,
+		ExternalRegistrationUrl = ClubCompetitionAPI.external_registration_url,
+		LiveId = CompetitionAPI.live_id,
+		CurrentMatchId = GetResponseForCompetition.current_match_live_id,
+		MatchGenerationDate = CompetitionAPI.matches_generation_date,
+		LeaderboardId = CompetitionAPI.leaderboard_id,
+		CompetitionId = CompetitionAPI.id,
+		Type = ClubCompetitionAPI.type,
+		Player = {{{CompetitionStruct::P}}}K_Participant {
+			AccountId = GetResponseForCompetition.participant.participant
+		},
+		Rounds = []
+	};
+	foreach (Round in Rounds) {
+		declare {{{CompetitionStruct::P}}}K_ClubCompetitionPlayerChallengeServer[] QualifierServers;
+		foreach (Server in Round.qualifier_challenge.servers) {
+			QualifierServers.add({{{CompetitionStruct::P}}}K_ClubCompetitionPlayerChallengeServer {
+				Position = Server.position,
+				JoinLink = Server.join_link
+			});
+		}
+		ClubCompetition.Rounds.add({{{CompetitionStruct::P}}}K_ClubCompetitionRound {
+			Id = Round.id,
+			Name = Round.name,
+			Position = Round.position,
+			Status = Round.status,
+			Start = Round.start_date,
+			End = Round.end_date,
+			NbMatches = Round.nb_matches,
+			QualifierChallenge = {{{CompetitionStruct::P}}}K_ClubCompetitionPlayerChallenge { 
+				Id = Round.qualifier_challenge.id,
+				Name = Round.qualifier_challenge.name,
+				StartDate = Round.qualifier_challenge.start_date,
+				EndDate = Round.qualifier_challenge.end_date,
+				IsCompleted = Round.qualifier_challenge.is_completed,
+				Servers = QualifierServers
+			}
+		});
+	}
+	ClubCompetition.CurrentQualifierChallenge = {{{CompetitionStruct::P}}}K_ClubCompetitionPlayerChallenge {
+		Id = GetResponseForCompetition.current_qualifier_challenge.id,
+		Name = GetResponseForCompetition.current_qualifier_challenge.name,
+		StartDate = GetResponseForCompetition.current_qualifier_challenge.start_date,
+		EndDate = GetResponseForCompetition.current_qualifier_challenge.end_date,
+		IsCompleted = GetResponseForCompetition.current_qualifier_challenge.is_completed,
+		Servers = []
+	};
+	foreach (QualifierChallengeServer in QualifierChallengeServers) {
+		ClubCompetition.CurrentQualifierChallenge.Servers.add({{{CompetitionStruct::P}}}K_ClubCompetitionPlayerChallengeServer {
+			Position = QualifierChallengeServer.position,
+			JoinLink = QualifierChallengeServer.join_link
+		});
+	}
+	return ClubCompetition;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to create a competition
+ *
+ *	@param	_CreateCompetition				The object of competition
+ *
+ *	@return														The request
+*/
+{{{Http::P}}}K_Request {{{P}}}PostCompetitionCreate({{{CompetitionStruct::P}}}K_CreateCompetition _CreateCompetition) {
+	declare ComponentCompetitionAPI_K_HttpCreateCompetition CreateCompetition = ComponentCompetitionAPI_K_HttpCreateCompetition {
+		club_id = _CreateCompetition.ClubId,
+		name = _CreateCompetition.Name,
+		description = _CreateCompetition.Description,
+		start_date = _CreateCompetition.MatchStartDate,
+		nb_players_per_match = _CreateCompetition.MaxPlayersPerMatch,
+		nb_players = _CreateCompetition.MaxPlayers_Total,
+		mode = _CreateCompetition.ScriptName,
+		qualifier_start_date = _CreateCompetition.QualifierStartDate,
+		qualifier_end_date = _CreateCompetition.QualifierEndDate, 
+		registrations_start_date = _CreateCompetition.RegistrationStartDate,
+		registrations_end_date = _CreateCompetition.RegistrationEndDate
+		};
+		
+		foreach (setting in _CreateCompetition.ScriptSettings) {
+			CreateCompetition.script_settings.add({{{P}}}K_ClubCompetitionScriptSettingsType {
+				name = setting.Name,
+				type = setting.Type,
+				value = setting.Value
+			});
+		}
+
+		foreach (map in _CreateCompetition.MapsQualify) {
+			CreateCompetition.qualifier_maps.add({{{P}}}K_Map {
+				url = map.DownloadUrl,
+				ident = map.Id
+			});
+		}
+
+		foreach (map in _CreateCompetition.MapUrl) {
+			CreateCompetition.competition_maps.add({{{P}}}K_Map {
+				url = map.DownloadUrl,
+				ident = map.Id
+			});
+		}
+
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_ClubCompetition^{{{P}}}C_Route_PostCompetitionCreate, CreateCompetition.tojson(), {{{P}}}GetHeaders());
+}
+
+// Parse the response to PostCompetitionCreate request, return ActivityId.
+Integer {{{P}}}GetResponseFromPostCompetitionCreate({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_ClubCompetition GetResponseForCompetition;
+	GetResponseForCompetition.fromjson({{{Http::P}}}GetResult(_Request));
+	declare Integer ActivityId = GetResponseForCompetition.activity_id;
+	return ActivityId;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a Request to upload a logo of the competition
+*
+* @param _MediaUrl						Image to Upload
+* @return 										The request
+*/
+
+{{{Http::P}}}K_Request {{{P}}}PostUploadImgLogo(Integer _ActivityId, Text MediaUrl) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostUploadImgLogo,
+		[
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return {{{Http::P}}}CreatePostFile({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_ClubCompetition^Route, MediaUrl, {{{P}}}GetHeaderImg());
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a Request to upload a vertical image of the competition
+*
+* @param _MediaUrl						Image to Upload
+* @return 											The request
+*/
+
+{{{Http::P}}}K_Request {{{P}}}PostUploadImgVertical(Integer _ActivityId, Text MediaUrl) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostUploadImgVertical,
+		[
+			{{{P}}}C_RouteParameter_ActivityId => ""^_ActivityId
+		]
+	);
+	return {{{Http::P}}}CreatePostFile({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_ClubCompetition^Route, MediaUrl, {{{P}}}GetHeaderImg());
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Get Error request
+{{{P}}}K_Error {{{P}}}GetError({{{Http::P}}}K_Request _Request) {
+	declare ComponentCompetitionAPI_K_Error Error;
+	Error.fromjson(_Request.Result);
+	return Error;
+}
+
+/* CLUB API */
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/* Start a Request to get all matches of user
+* 
+* @return 									The request
+*
+*/
+{{{Http::P}}}K_Request {{{P}}}GetAllMyMatches(Text _LiveId) {
+	declare Text QueryString = {{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_NotCompleted => ""^1,  //the value 1 is equal than true, it will send back a list of matches which have status as "not completed"
+		{{{P}}}C_QueryParameter_Group => _LiveId
+	]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBordeauxClubUrl^{{{P}}}C_Route_GetMyMatches^QueryString, {{{P}}}GetHeaders());
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response of GetAllMyMatches()
+
+{{{CompetitionStruct::P}}}K_PlayerNextMatch[] {{{P}}}GetResponseFromGetAllMyMatches({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_PlayerNextMatches AllMyMatches;
+	AllMyMatches.fromjson({{{Http::P}}}GetResult(_Request));
+	declare {{{CompetitionStruct::P}}}K_PlayerNextMatch[] AllMatchs;
+	foreach (Match in AllMyMatches.matches) {
+		AllMatchs.add({{{CompetitionStruct::P}}}K_PlayerNextMatch {
+		LiveId = Match.live_id,
+		Name = Match.name,
+		JoinLink = Match.join_link,
+		IsSpectator = Match.is_spectator,
+		EndDate = Match.end_date,
+		StartDate = Match.start_date
+		});
+	}
+	return AllMatchs;
+}
+""",
+[Http::Component(), CompetitionStruct::Component(), HttpStruct::Component(), Config::Component(), HttpClubAuthorizationHeader::Component()],
+[]
+);
+}
+ 

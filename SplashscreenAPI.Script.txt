@@ -1,0 +1,108 @@
+/**
+ *	Component : SplashscreenAPI
+ */
+#Const Version		"2020-09-23"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/SplashscreenAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/SplashscreenStruct.Script.txt" as SplashscreenStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_HttpSplashscreen {
+	Integer id;
+	Text headline;
+	Text body;
+	Text link;
+	Text mediaUrl;
+	Integer startTimestamp;
+	Boolean viewed;
+}
+
+#Struct K_HttpSplashscreenList {
+	K_HttpSplashscreen[] splashscreenList;
+	Integer maxPage;
+	Integer itemCount;
+	Integer notViewedCount;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "lib-splashcreen-api" //< Component name
+#Const P "LibSplashscreenAPI_" //< Prefix use to differentiate functions/variables in the script
+
+#Const C_API_Splashscreen "/api/token/splashscreen"
+
+#Const C_QueryParameter_Lang "lang"
+#Const C_QueryParameter_Offset "offset"
+#Const C_QueryParameter_Length "length"
+
+#Const C_RouterParameter_SplashscreenId "SplashscreenId"
+
+#Const C_Route_GetSplashscreenList "/"
+#Const C_Route_PostSplashscreenView "/:SplashscreenId/view"
+
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of splashscreen
+ *
+ *	@param	_Lang											The language of the splashscreen
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetSplashscreenList(Text _Lang, Integer _Offset, Integer _Length) {
+	declare Text[Text] QueryArray = [
+		C_QueryParameter_Lang => _Lang,
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	declare Text Query = Http::CreateQueryString(QueryArray);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Splashscreen^C_Route_GetSplashscreenList^Query, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetSplashscreenList request
+SplashscreenStruct::LibSplashscreenStruct_K_SplashscreenList GetResponseFromGetSplashscreenList(Http::LibCommonHttp_K_Request _Request) {
+	declare K_HttpSplashscreenList HttpSplashscreenList;
+	HttpSplashscreenList.fromjson(Http::GetResult(_Request));
+
+	declare SplashscreenStruct::LibSplashscreenStruct_K_SplashscreenList SplashscreenList;
+	foreach (HttpSplashscreen in HttpSplashscreenList.splashscreenList) {
+		SplashscreenList.Splashscreens.add(SplashscreenStruct::LibSplashscreenStruct_K_Splashscreen {
+			Id = HttpSplashscreen.id,
+			Headline = HttpSplashscreen.headline,
+			Body = HttpSplashscreen.body,
+			Link = HttpSplashscreen.link,
+			MediaUrl = HttpSplashscreen.mediaUrl,
+			Viewed = HttpSplashscreen.viewed
+		});
+	}
+	SplashscreenList.Total = HttpSplashscreenList.itemCount;
+	SplashscreenList.UnreadNb = HttpSplashscreenList.notViewedCount;
+	
+	return SplashscreenList;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to mark a splashscreen as viewed
+ *
+ *	@param	_SplashscreenId						The id of the splashscreen to mark as read
+ */
+Http::LibCommonHttp_K_Request PostSplashscreenView(Integer _SplashscreenId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_PostSplashscreenView, [C_RouterParameter_SplashscreenId => ""^_SplashscreenId]);
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Splashscreen^Route, "", C_Headers);
+}
