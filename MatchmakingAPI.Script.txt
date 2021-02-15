@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-01-20"
+#Const Version		"2021-02-11"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -58,6 +58,7 @@
 	Integer creation_date;
 	Integer matchmaking_waiting_time;
 	Text match_live_id;
+	Integer ban_end_date;
 }
 #Struct ComponentMatchmakingAPI_K_HttpMatch {
 	Text join_link;
@@ -225,7 +226,8 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 		Status = _HeartbeatResponse.status,
 		CreationDate = _HeartbeatResponse.creation_date,
 		MatchmakingWaitingTime = _HeartbeatResponse.matchmaking_waiting_time,
-		MatchLiveId = _HeartbeatResponse.match_live_id
+		MatchLiveId = _HeartbeatResponse.match_live_id,
+		BanEndDate = _HeartbeatResponse.ban_end_date
 	};
 }
 
