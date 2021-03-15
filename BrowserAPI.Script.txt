@@ -1,7 +1,7 @@
 /**
  *	API for Browsers
  */
-#Const Version		"2020-11-25"
+#Const Version		"2021-03-08"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -66,6 +66,7 @@
 #Const C_DataType_MatchSettings 7
 #Const C_DataType_Category 8
 #Const C_DataType_Club 9
+#Const C_DataType_ItemCollection 10
 
 #Const C_TooltipPos_ScrollTop 0
 #Const C_TooltipPos_Footer 1
@@ -92,7 +93,9 @@
 	//L16N A folder, also called a directory, is a special space used to store files, other folders...
 	8 => _("|DataType|Folder"),
 	//L16N Club is an in-game, private communitie where players can gather to discuss, drive, create, organize or participate to special events.
-	9 => _("|DataType|Club")
+	9 => _("|DataType|Club"),
+	//L16N Package of 3D assets use in the map editor as items
+	10 => _("|DataType|Item Collection")
 ]
 
 #Const C_Path_Base "Path_Base"
@@ -141,6 +144,8 @@
 #Const C_BrowserName_Map _("Maps")
 //L16N Storage for campaigns
 #Const C_BrowserName_Campaign _("Campaign library")
+//L16N Page to search for an item collection
+#Const C_BrowserName_ItemCollection _("Item Collection browser")
 //L16N Track name
 #Const C_Text_Name _("Name")
 //L16N Racing track
@@ -707,6 +712,7 @@ C_Name,
 #Const {{{P}}}C_DataType_MatchSettings {{{C_DataType_MatchSettings}}}
 #Const {{{P}}}C_DataType_Category {{{C_DataType_Category}}}
 #Const {{{P}}}C_DataType_Club {{{C_DataType_Club}}}
+#Const {{{P}}}C_DataType_ItemCollection {{{C_DataType_ItemCollection}}}
 
 #Const {{{P}}}C_DataType_NameList {{{dump(C_DataType_NameList)}}}
 
@@ -716,7 +722,8 @@ C_Name,
 	{{{C_DataType_Image}}},
 	{{{C_DataType_Skin}}},
 	{{{C_DataType_Script}}},
-	{{{C_DataType_MatchSettings}}}
+	{{{C_DataType_MatchSettings}}},
+	{{{C_DataType_ItemCollection}}}
 ]
 #Const {{{P}}}C_DataType_CanBeMultiSelect [
 	{{{C_DataType_Replay}}},
@@ -747,6 +754,7 @@ C_Name,
 #Const {{{P}}}C_BasePath "file://"
 #Const {{{P}}}C_BasePath_Media "Media/"
 #Const {{{P}}}C_BasePath_Skins "Skins/"
+#Const {{{P}}}C_BasePath_ItemCollections "ItemCollections/My ItemCollections/"
 
 #Const {{{P}}}C_Browser_NullDataCount 0
 
@@ -1397,6 +1405,7 @@ Void {{{P}}}FetchLocalData(Integer _BrowserType, Text _Path) {
 			switch (Type) {
 				case {{{P}}}C_DataType_Image: MediaType = CDataFileMgr::EMediaType::Image;
 				case {{{P}}}C_DataType_Skin: MediaType = CDataFileMgr::EMediaType::Skins;
+				case {{{P}}}C_DataType_ItemCollection: MediaType = CDataFileMgr::EMediaType::ItemCollection;
 				case {{{P}}}C_DataType_Script: {
 					BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
 					MediaType = CDataFileMgr::EMediaType::Script;
@@ -1722,6 +1731,9 @@ Void {{{P}}}OpenExplorer(Integer _BrowserType) {
 			case {{{P}}}C_DataType_MatchSettings: {
 				ParentApp.OpenFileInExplorer("Maps\\MatchSettings\\"^CurrentPath);
 			}
+			case {{{P}}}C_DataType_ItemCollection: {
+				ParentApp.OpenFileInExplorer("ItemCollections\\My ItemCollections\\"^CurrentPath);
+			}
 		}
 	}
 }
@@ -1781,7 +1793,8 @@ Void {{{P}}}UpdateBrowser(Integer _BrowserType) {
 		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Image) ||
 		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Skin) ||
 		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_Script) ||
-		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_MatchSettings)
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_MatchSettings) ||
+		{{{P}}}G_Browsers[_BrowserType].DataTypes.exists({{{P}}}C_DataType_ItemCollection)
 	) {
 		{{{P}}}FetchLocalData(_BrowserType);
 	}
@@ -3457,6 +3470,18 @@ if (PageIsVisible) {
 								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, {{{P}}}C_Path_ChosenClub);
 							}
 						}
+						case {{{P}}}C_DataType_ItemCollection: {
+							declare FileBrowserData = {{{P}}}GetFileBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
+							if (FileBrowserData.SubFolder != "") {
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, FileBrowserData.SubFolder);
+							} else {
+								{{{P}}}PendingEvents.add({{{P}}}K_Event {
+									Type = {{{P}}}C_EventType_Select,
+									DataType = {{{P}}}C_DataType_ItemCollection,
+									Data = FileBrowserData.File
+								});
+							}
+						}						
 						case {{{P}}}C_DataType_Category: {
 							declare CurrentPath = {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].CurrentPath;
 							if ({{{P}}}G_Paths_Tree.existskey(CurrentPath) && {{{P}}}G_Paths_Tree[CurrentPath].existskey(Event.ToKey)) {
