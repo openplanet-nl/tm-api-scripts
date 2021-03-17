@@ -1,7 +1,7 @@
 /**
  *	API for Browsers
  */
-#Const Version		"2021-03-08"
+#Const Version		"2021-03-17"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -754,7 +754,6 @@ C_Name,
 #Const {{{P}}}C_BasePath "file://"
 #Const {{{P}}}C_BasePath_Media "Media/"
 #Const {{{P}}}C_BasePath_Skins "Skins/"
-#Const {{{P}}}C_BasePath_ItemCollections "ItemCollections/My ItemCollections/"
 
 #Const {{{P}}}C_Browser_NullDataCount 0
 
@@ -1516,9 +1515,33 @@ Void {{{P}}}ResetBrowserCampaignsAndClubId(Integer _BrowserType) {
 
 
 Void {{{P}}}RefreshBrowserData() {
+	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return;
+	declare {{{P}}}K_Browser CurrentBrowser = {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser];
 
-	DataFileMgr.Map_RefreshFromDisk();
-	DataFileMgr.Replay_RefreshFromDisk();
+	declare Integer BrowserFilter = {{{Const::C_BrowserFilter_UserData}}};
+	if ({{{Config::P}}}Get().IsDebug) BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
+
+	foreach (Type in CurrentBrowser.DataTypes) {
+		if (Type == {{{P}}}C_DataType_Map) {
+			DataFileMgr.Map_RefreshFromDisk();
+		} else if (Type == {{{P}}}C_DataType_Replay) {
+			DataFileMgr.Replay_RefreshFromDisk();
+		} else if (CurrentBrowser.Files.existskey(Type)) {
+			declare CDataFileMgr::EMediaType MediaType;
+			switch (Type) {
+				case {{{P}}}C_DataType_Image: MediaType = CDataFileMgr::EMediaType::Image;
+				case {{{P}}}C_DataType_Skin: MediaType = CDataFileMgr::EMediaType::Skins;
+				case {{{P}}}C_DataType_ItemCollection: MediaType = CDataFileMgr::EMediaType::ItemCollection;
+				case {{{P}}}C_DataType_Script: {
+					BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
+					MediaType = CDataFileMgr::EMediaType::Script;
+				}
+				case {{{P}}}C_DataType_MatchSettings: MediaType = CDataFileMgr::EMediaType::MatchSettings;
+				default: MediaType = CDataFileMgr::EMediaType::Image;
+			}
+			DataFileMgr.Media_RefreshFromDisk(MediaType, BrowserFilter);
+		}
+	}
 
 	{{{P}}}FetchLocalData({{{P}}}G_Type_CurrentBrowser);
 }
@@ -1732,7 +1755,7 @@ Void {{{P}}}OpenExplorer(Integer _BrowserType) {
 				ParentApp.OpenFileInExplorer("Maps\\MatchSettings\\"^CurrentPath);
 			}
 			case {{{P}}}C_DataType_ItemCollection: {
-				ParentApp.OpenFileInExplorer("ItemCollections\\My ItemCollections\\"^CurrentPath);
+				ParentApp.OpenFileInExplorer("ItemCollections\\"^CurrentPath);
 			}
 		}
 	}
