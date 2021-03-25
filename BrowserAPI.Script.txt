@@ -1367,6 +1367,19 @@ Void {{{P}}}FetchLiveData(Integer _BrowserType) {
 	{{{P}}}G_RequestsManager.WaitingForClubs = True;
 }
 
+CDataFileMgr::EMediaType {{{P}}}GetMediaType(Integer _Type) {
+	declare CDataFileMgr::EMediaType MediaType;
+	switch (_Type) {
+		case {{{P}}}C_DataType_Image: MediaType = CDataFileMgr::EMediaType::Image;
+		case {{{P}}}C_DataType_Skin: MediaType = CDataFileMgr::EMediaType::Skins;
+		case {{{P}}}C_DataType_ItemCollection: MediaType = CDataFileMgr::EMediaType::ItemCollection;
+		case {{{P}}}C_DataType_Script: MediaType = CDataFileMgr::EMediaType::Script;
+		case {{{P}}}C_DataType_MatchSettings: MediaType = CDataFileMgr::EMediaType::MatchSettings;
+		default: MediaType = CDataFileMgr::EMediaType::Image;
+	}
+	return MediaType;
+}
+
 Void {{{P}}}FetchLocalData(Integer _BrowserType, Text _Path) {
 	if (!{{{P}}}G_Browsers.existskey(_BrowserType)) return;
 	declare {{{P}}}K_Browser CurrentBrowser = {{{P}}}G_Browsers[_BrowserType];
@@ -1400,18 +1413,8 @@ Void {{{P}}}FetchLocalData(Integer _BrowserType, Text _Path) {
 			if (CurrentBrowser.Files[Type].TaskResultList != Null) {
 				DataFileMgr.TaskResult_Release(CurrentBrowser.Files[Type].TaskResultList.Id);
 			}
-			declare CDataFileMgr::EMediaType MediaType;
-			switch (Type) {
-				case {{{P}}}C_DataType_Image: MediaType = CDataFileMgr::EMediaType::Image;
-				case {{{P}}}C_DataType_Skin: MediaType = CDataFileMgr::EMediaType::Skins;
-				case {{{P}}}C_DataType_ItemCollection: MediaType = CDataFileMgr::EMediaType::ItemCollection;
-				case {{{P}}}C_DataType_Script: {
-					BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
-					MediaType = CDataFileMgr::EMediaType::Script;
-				}
-				case {{{P}}}C_DataType_MatchSettings: MediaType = CDataFileMgr::EMediaType::MatchSettings;
-				default: MediaType = CDataFileMgr::EMediaType::Image;
-			}
+			declare CDataFileMgr::EMediaType MediaType = {{{P}}}GetMediaType(Type);
+			if (Type == {{{P}}}C_DataType_Script) BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
 			{{{P}}}G_Browsers[_BrowserType].Files[Type].TaskResultList = DataFileMgr.Media_GetFilteredGameList(
 				MediaType,
 				BrowserFilter,
@@ -1513,7 +1516,6 @@ Void {{{P}}}ResetBrowserCampaignsAndClubId(Integer _BrowserType) {
 	{{{P}}}G_Browsers[_BrowserType].ChosenClubId = {{{ClubStruct::P}}}C_ClubNullId;
 }
 
-
 Void {{{P}}}RefreshBrowserData() {
 	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return;
 	declare {{{P}}}K_Browser CurrentBrowser = {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser];
@@ -1527,18 +1529,8 @@ Void {{{P}}}RefreshBrowserData() {
 		} else if (Type == {{{P}}}C_DataType_Replay) {
 			DataFileMgr.Replay_RefreshFromDisk();
 		} else if (CurrentBrowser.Files.existskey(Type)) {
-			declare CDataFileMgr::EMediaType MediaType;
-			switch (Type) {
-				case {{{P}}}C_DataType_Image: MediaType = CDataFileMgr::EMediaType::Image;
-				case {{{P}}}C_DataType_Skin: MediaType = CDataFileMgr::EMediaType::Skins;
-				case {{{P}}}C_DataType_ItemCollection: MediaType = CDataFileMgr::EMediaType::ItemCollection;
-				case {{{P}}}C_DataType_Script: {
-					BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
-					MediaType = CDataFileMgr::EMediaType::Script;
-				}
-				case {{{P}}}C_DataType_MatchSettings: MediaType = CDataFileMgr::EMediaType::MatchSettings;
-				default: MediaType = CDataFileMgr::EMediaType::Image;
-			}
+			declare CDataFileMgr::EMediaType MediaType = {{{P}}}GetMediaType(Type);
+			if (Type == {{{P}}}C_DataType_Script) BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
 			DataFileMgr.Media_RefreshFromDisk(MediaType, BrowserFilter);
 		}
 	}
