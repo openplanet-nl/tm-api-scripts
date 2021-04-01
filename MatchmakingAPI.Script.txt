@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-02-11"
+#Const Version		"2021-03-29"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -35,13 +35,13 @@
 #Const C_Route_GetMatchmakingPlayerStatus "/:MatchmakingId/player-status"
 #Const C_Route_PostMatchmakingAccept "/:MatchmakingId/accept"
 #Const C_Route_PostMatchmakingCancel "/:MatchmakingId/cancel"
-#Const C_Route_GetLeaderboard "/:MatchmakingId/leaderboard/players"
-#Const C_Route_GetLeaderboardScoresDelta "/:MatchId/leaderboard-standings"
-#Const C_Route_GetOfficialQueue "/3v3"
+#Const C_Route_GetLeaderboard "/:MatchmakingId/leaderboard/me"
+#Const C_Route_GetParticipantsScores "/:MatchId/participants"
+#Const C_Route_GetOfficialQueue "/:QueueName"
 
 #Const C_RouteParameter_MatchmakingId "MatchmakingId"
 #Const C_RouteParameter_MatchId "MatchId"
-#Const C_QueryParameter_Players "players"
+#Const C_RouteParameter_QueueName "QueueName"
 
 /* Club API */
 #Const C_API_Matches "/api/matches"
@@ -60,28 +60,30 @@
 	Text match_live_id;
 	Integer ban_end_date;
 }
-#Struct ComponentMatchmakingAPI_K_HttpMatch {
-	Text join_link;
+#Struct ComponentMatchmakingAPI_K_HttpPenalty {
+	Integer creation_date;
+	Integer points;
 }
 #Struct ComponentMatchmakingAPI_K_HttpPlayerStatus {
 	ComponentMatchmakingAPI_K_HttpHeartbeat current_heartbeat;
+	ComponentMatchmakingAPI_K_HttpPenalty penalty;
 }
-#Struct ComponentMatchmakingAPI_K_HttpPlayer {
+#Struct ComponentMatchmakingAPI_K_HttpMatch {
+	Text join_link;
+}
+#Struct ComponentMatchmakingAPI_K_HttpPlayerRanking {
+	Integer matchmaking_id;
 	Text player;
-	Integer rank;
 	Integer score;
 }
-#Struct ComponentMatchmakingAPI_K_HttpLeaderboard {
-	Integer matchmaking_id;
-	Integer cardinal;
-	ComponentMatchmakingAPI_K_HttpPlayer[] results;
-}
-#Struct ComponentMatchmakingAPI_K_HttpParticipantStanding {
+#Struct ComponentMatchmakingAPI_K_HttpParticipant {
 	Text player;
 	Integer leaderboard_score_delta;
+	Integer skill_level;
 }
-#Struct ComponentMatchmakingAPI_K_HttpLeaderboardStandings {
-	ComponentMatchmakingAPI_K_HttpParticipantStanding[] results;
+#Struct ComponentMatchmakingAPI_K_HttpMatchParticipants {
+	Boolean is_completed;
+	ComponentMatchmakingAPI_K_HttpParticipant[] participants;
 }
 #Struct ComponentMatchmakingAPI_K_HttpOfficialQueue {
 	Integer id;
@@ -101,62 +103,32 @@ Text[Text] GetHeadersWithClubAuth() {
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-// Get a leaderboard for the given players
-Http::LibCommonHttp_K_Request Server_GetLeaderboard(Text _MatchmakingId, Text[] _AccountIds) {
-	declare Text Route = Http::InjectRouteParameters(C_Route_GetLeaderboard, [C_RouteParameter_MatchmakingId => _MatchmakingId]);
-
-	declare Query = Http::CreateQueryString([C_QueryParameter_Players => _AccountIds]);
-
-	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Matchmaking^Route^Query, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
-}
-
-MatchmakingStruct::LibStructuresMatchmaking_K_Leaderboard GetResponseFromGetLeaderboard(Http::LibCommonHttp_K_Request _Request) {
-	declare ComponentMatchmakingAPI_K_HttpLeaderboard LeaderboardResponse;
-	LeaderboardResponse.fromjson(Http::GetResult(_Request));
-
-	declare MatchmakingStruct::LibStructuresMatchmaking_K_Player[Text] Results;
-	foreach (Result in LeaderboardResponse.results) {
-		Results[Result.player] = (MatchmakingStruct::LibStructuresMatchmaking_K_Player {
-			AccountId = Result.player,
-			Rank = Result.rank,
-			Score = Result.score
-		});
-	}
-	
-	declare Leaderboard = MatchmakingStruct::LibStructuresMatchmaking_K_Leaderboard {
-		MatchmakingId = LeaderboardResponse.matchmaking_id,
-		Cardinal = LeaderboardResponse.cardinal,
-		Results = Results
-	};
-
-	return Leaderboard;
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-// Get the players score delta in leaderboard for a given match
-Http::LibCommonHttp_K_Request Server_GetLeaderboardScoresDelta(Text _MatchId) {
-	declare Text Route = Http::InjectRouteParameters(C_Route_GetLeaderboardScoresDelta, [C_RouteParameter_MatchId => _MatchId]);
+// Get the players scores (skill level and score delta) for a given match
+Http::LibCommonHttp_K_Request Server_GetParticipantsScores(Text _MatchId) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetParticipantsScores, [C_RouteParameter_MatchId => _MatchId]);
 
 	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Match^Route, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
 }
 
-MatchmakingStruct::LibStructuresMatchmaking_K_LeaderboardStandings GetResponseFromGetLeaderboardScoresDelta(Http::LibCommonHttp_K_Request _Request) {
-	declare ComponentMatchmakingAPI_K_HttpLeaderboardStandings LeaderboardResponse;
-	LeaderboardResponse.fromjson(Http::GetResult(_Request));
+MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants GetResponseFromGetParticipantsScores(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpMatchParticipants MatchParticipantsResponse;
+	MatchParticipantsResponse.fromjson(Http::GetResult(_Request));
 
-	declare MatchmakingStruct::LibStructuresMatchmaking_K_ParticipantStanding[Text] Results;
-	foreach (Result in LeaderboardResponse.results) {
-		Results[Result.player] = (MatchmakingStruct::LibStructuresMatchmaking_K_ParticipantStanding {
-			AccountId = Result.player,
-			ScoreDelta = Result.leaderboard_score_delta
-		});
+	declare MatchmakingStruct::LibStructuresMatchmaking_K_Participant[Text] Participants;
+	foreach (Participant in MatchParticipantsResponse.participants) {
+		Participants[Participant.player] = MatchmakingStruct::LibStructuresMatchmaking_K_Participant {
+			AccountId = Participant.player,
+			ScoreDelta = Participant.leaderboard_score_delta,
+			SkillLevel = Participant.skill_level
+		};
 	}
 	
-	declare LeaderboardScoresDelta = MatchmakingStruct::LibStructuresMatchmaking_K_LeaderboardStandings {
-		Results = Results
+	declare MatchParticipants = MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants {
+		IsCompleted = MatchParticipantsResponse.is_completed,
+		Participants = Participants
 	};
 
-	return LeaderboardScoresDelta;
+	return MatchParticipants;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Get the component
@@ -181,7 +153,7 @@ C_Name,
 #Const {{{P}}}C_Route_GetLeaderboard {{{dump(C_Route_GetLeaderboard)}}}
 #Const {{{P}}}C_Route_GetOfficialQueue {{{dump(C_Route_GetOfficialQueue)}}}
 #Const {{{P}}}C_RouteParameter_MatchmakingId {{{dump(C_RouteParameter_MatchmakingId)}}}
-#Const {{{P}}}C_QueryParameter_Players {{{dump(C_QueryParameter_Players)}}}
+#Const {{{P}}}C_RouteParameter_QueueName {{{dump(C_RouteParameter_QueueName)}}}
 
 /* Club API */
 #Const {{{P}}}C_API_Matches {{{dump(C_API_Matches)}}}
@@ -189,12 +161,11 @@ C_Name,
 #Const {{{P}}}C_RouteParameter_MatchLid {{{dump(C_RouteParameter_MatchLid)}}}
 
 {{{dumptype(ComponentMatchmakingAPI_K_HttpHeartbeat)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpPenalty)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerStatus)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpMatch)}}}
-{{{dumptype(ComponentMatchmakingAPI_K_HttpPlayer)}}}
-{{{dumptype(ComponentMatchmakingAPI_K_HttpLeaderboard)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerRanking)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpOfficialQueue)}}}
-
 """,
 """
 Text[Text] {{{P}}}GetHeadersWithClubAuth() {
@@ -253,22 +224,30 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, {{{P}}}GetHeadersWithClubAuth());
 }
 
-{{{MatchmakingStruct::P}}}K_Heartbeat {{{P}}}GetResponseFromGetMatchmakingPlayerStatus({{{Http::P}}}K_Request _Request) {
+{{{MatchmakingStruct::P}}}K_PlayerStatus {{{P}}}GetResponseFromGetMatchmakingPlayerStatus({{{Http::P}}}K_Request _Request) {
 	declare ComponentMatchmakingAPI_K_HttpPlayerStatus PlayerStatusResponse;
 	PlayerStatusResponse.fromjson({{{Http::P}}}GetResult(_Request));
 
-	return HeartbeatApiToScript(PlayerStatusResponse.current_heartbeat);
+	return {{{MatchmakingStruct::P}}}K_PlayerStatus {
+		CurrentHeartbeat = HeartbeatApiToScript(PlayerStatusResponse.current_heartbeat),
+		Penalty = {{{MatchmakingStruct::P}}}K_Penalty {
+			CreationDate = PlayerStatusResponse.penalty.creation_date,
+			Points = PlayerStatusResponse.penalty.points
+		}
+	};
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Start a request to get the official queue id
 	*
+	*	@param _QueueName									The name of the queue
+	*
 	* @return 													The request
 */
-{{{Http::P}}}K_Request {{{P}}}GetOfficialQueue() {
+{{{Http::P}}}K_Request {{{P}}}GetOfficialQueue(Text _QueueName) {
 	declare Text Route = {{{Http::P}}}InjectRouteParameters(
 		{{{P}}}C_Route_GetOfficialQueue,
-		[]
+		[{{{P}}}C_RouteParameter_QueueName => _QueueName]
 	);
 	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Official^Route, {{{P}}}GetHeadersWithClubAuth());
 }
@@ -289,31 +268,24 @@ Integer {{{P}}}GetResponseFromGetOfficialQueue({{{Http::P}}}K_Request _Request) 
 	*
 	* @return 													The request
 */
-{{{Http::P}}}K_Request {{{P}}}GetMatchmakingLeaderboard(Integer _MatchmakingId, Text[] _AccountIds) {
+{{{Http::P}}}K_Request {{{P}}}GetMatchmakingLeaderboard(Integer _MatchmakingId) {
 	declare Text Route = {{{Http::P}}}InjectRouteParameters(
 		{{{P}}}C_Route_GetLeaderboard,
 		[{{{P}}}C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
 	);
 
-	declare Query = {{{Http::P}}}CreateQueryString([{{{P}}}C_QueryParameter_Players => _AccountIds]);
-
-	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route^Query, {{{P}}}GetHeadersWithClubAuth());
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, {{{P}}}GetHeadersWithClubAuth());
 }
 
-{{{MatchmakingStruct::P}}}K_Leaderboard {{{P}}}GetResponseFromGetMatchmakingLeaderboard({{{Http::P}}}K_Request _Request) {
-	declare ComponentMatchmakingAPI_K_HttpLeaderboard LeaderboardResponse;
+{{{MatchmakingStruct::P}}}K_PlayerRank {{{P}}}GetResponseFromGetMatchmakingLeaderboard({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpPlayerRanking LeaderboardResponse;
 	LeaderboardResponse.fromjson({{{Http::P}}}GetResult(_Request));
-	declare Leaderboard = {{{MatchmakingStruct::P}}}K_Leaderboard {
+
+	declare Leaderboard = {{{MatchmakingStruct::P}}}K_PlayerRank {
 		MatchmakingId = LeaderboardResponse.matchmaking_id,
-		Cardinal = LeaderboardResponse.cardinal
+		AccountId = LeaderboardResponse.player,
+		Score = LeaderboardResponse.score
 	};
-	foreach (ApiResult in LeaderboardResponse.results) {
-		Leaderboard.Results[ApiResult.player] = {{{MatchmakingStruct::P}}}K_Player {
-			AccountId = ApiResult.player,
-			Rank = ApiResult.rank,
-			Score = ApiResult.score
-		};
-	}
 
 	return Leaderboard;
 }

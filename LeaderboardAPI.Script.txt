@@ -1,7 +1,7 @@
 /**
  *  Component : Leaderboard API
  */
-#Const Version    "2020-09-16"
+#Const Version    "2021-03-17"
 #Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/LeaderboardAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -42,6 +42,8 @@
 #Const C_Route_GetTopRankingsInClub "/:GroupUid/club/:ClubId/top"
 #Const C_Route_GetPlayerAllMapsRankings "/:GroupUid/map"
 #Const C_Route_GetPlayerAllMapsRankingsInClub "/:GroupUid/map/club/:ClubId"
+#Const C_Route_GetPlayerAllMapsRankingsMultiGroups "/map"
+#Const C_Route_GetPlayerAllMapsRankingsInClubMultiGroups "/map/club/:ClubId"
 #Const C_Route_GetPlayerMapRankings "/:GroupUid/map/:MapUid"
 #Const C_Route_GetMapTopRankings "/:GroupUid/map/:MapUid/top"
 #Const C_Route_GetSurroundingRankings "/:GroupUid/map/:MapUid/surround/:NbBefore/:NbAfter"
@@ -115,6 +117,14 @@
 	Text zoneId;
 	Text zoneName;
 	LibLeaderboardAPI_K_HttpTopScore[] level;
+}
+
+#Struct LibLeaderboardAPI_K_MapGroupUid {
+	Text mapUid;
+	Text groupUid;
+}
+#Struct LibLeaderboardAPI_K_MapGroupUidList {
+	LibLeaderboardAPI_K_MapGroupUid[] maps;
 }
 
 // ~~~~~~~~~~~~~~~~ //
@@ -208,6 +218,7 @@
 
 #Struct LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings {
 	Text LeaderboardGroupUid;
+	Text MapUid;
 	Integer Score;
 	CampaignStruct::LibCampaignStruct_K_Ranking[] Rankings;
 }
@@ -465,17 +476,8 @@ Http::LibCommonHttp_K_Request GetPlayerAllMapsRankings(Text _GroupUid) {
  */
 Http::LibCommonHttp_K_Request GetPlayerAllMapsRankings(Text _GroupUid, Integer[Text] _CurrentScores) {
 	declare Text Route = Http::InjectRouteParameters(C_Route_GetPlayerAllMapsRankings, [C_RouteParameter_GroupUid => _GroupUid]);
-	/* Query with Integer[Text] value
-	 * ["key5" => valueA, "key6" => valueB, "key7" => valueC]
-	 * -> "?scores[key5]=valueA&scores[key6]=valueB&scores[key7]=valueC"
-	*/
-	declare Text CustomQueryString = "";
-	foreach (MapUid => Integer_Score in _CurrentScores) {
-		if (CustomQueryString == "") CustomQueryString = "?";
-		else CustomQueryString ^= "&";
-		CustomQueryString ^= TL::URLEncode(C_QueryParameter_Scores)^"["^TL::URLEncode(MapUid)^"]="^Integer_Score;
-	}
-	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Leaderboard^Route^CustomQueryString, C_Headers);
+	declare Text QueryString = Http::CreateQueryString(C_QueryParameter_Scores, _CurrentScores);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Leaderboard^Route^QueryString, C_Headers);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -499,9 +501,62 @@ LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings[Text] GetResponseFromGetPla
 		}
 		PlayerAllMapsRankings[MapUid] = LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings {
 			LeaderboardGroupUid = HttpGetPlayerMapRankings.groupUid,
+			MapUid = HttpGetPlayerMapRankings.mapUid,
 			Score = HttpGetPlayerMapRankings.score,
 			Rankings = Rankings
 		};
+	}
+
+	return PlayerAllMapsRankings;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the rankings of the player in every maps of several groups
+ *
+ *	@param	_MapGroupUidList				The group and map uid of each map
+ *	@param	_CurrentScores					New player's score to estimate current player's rank (MapUid => Score)
+ *
+ *	@return													The request
+ */
+Http::LibCommonHttp_K_Request GetPlayerMapGroupUidListRankings(Text[Text] _MapGroupUidList, Integer[Text] _CurrentScores) {
+	declare Text QueryString = Http::CreateQueryString(C_QueryParameter_Scores, _CurrentScores);
+	declare LibLeaderboardAPI_K_MapGroupUidList MapGroupUidList;
+	foreach (MapUid => GroupUid in _MapGroupUidList) {
+		if (MapUid != "" && GroupUid != "") {
+			MapGroupUidList.maps.add(LibLeaderboardAPI_K_MapGroupUid {
+				mapUid = MapUid,
+				groupUid = GroupUid
+			});
+		}
+	}
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Leaderboard^C_Route_GetPlayerAllMapsRankingsMultiGroups^QueryString, MapGroupUidList.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetPlayerMapGroupUidListRankings request
+LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings[] GetResponseFromGetPlayerMapGroupUidListRankings(Http::LibCommonHttp_K_Request _Request) {
+	declare LibLeaderboardAPI_K_HttpGetPlayerMapRankings[] HttpGetPlayerAllMapsRankings;
+	HttpGetPlayerAllMapsRankings.fromjson(Http::GetResult(_Request));
+
+	declare LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings[] PlayerAllMapsRankings; 
+	foreach (HttpGetPlayerMapRankings in HttpGetPlayerAllMapsRankings) {
+		declare CampaignStruct::LibCampaignStruct_K_Ranking[] Rankings;
+		foreach (RankZone in HttpGetPlayerMapRankings.zones) {
+			Rankings.add(
+				CampaignStruct::LibCampaignStruct_K_Ranking {
+					ZoneId = RankZone.zoneId,
+					ZoneName = RankZone.zoneName,
+					Position = RankZone.ranking.position,
+					Length = RankZone.ranking.length
+				}
+			);
+		}
+		PlayerAllMapsRankings.add(LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings {
+			LeaderboardGroupUid = HttpGetPlayerMapRankings.groupUid,
+			MapUid = HttpGetPlayerMapRankings.mapUid,
+			Score = HttpGetPlayerMapRankings.score,
+			Rankings = Rankings
+		});
 	}
 
 	return PlayerAllMapsRankings;
@@ -518,13 +573,8 @@ LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings[Text] GetResponseFromGetPla
  */
 Http::LibCommonHttp_K_Request GetPlayerAllMapsRankingsInAClub(Text _GroupUid, Integer _ClubId, Integer[Text] _Scores) {
 	declare Text Route = Http::InjectRouteParameters(C_Route_GetPlayerAllMapsRankingsInClub, [C_RouteParameter_GroupUid => _GroupUid,	C_RouteParameter_ClubId => ""^_ClubId]);
-	declare Text CustomQueryString = "";
-	foreach (MapUid => Score in _Scores) {
-		if (CustomQueryString == "") CustomQueryString = "?";
-		else CustomQueryString ^= "&";
-		CustomQueryString ^= TL::URLEncode(C_QueryParameter_Scores)^"["^TL::URLEncode(MapUid)^"]="^Score;
-	}
-	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Leaderboard^Route^CustomQueryString, C_Headers);
+	declare Text QueryString = Http::CreateQueryString(C_QueryParameter_Scores, _Scores);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Leaderboard^Route^QueryString, C_Headers);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -542,6 +592,50 @@ LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankingsInClub[Text] GetResponseFrom
 			Score = HttpGetPlayerMapRankings.score,
 			Position = HttpGetPlayerMapRankings.position
 		};
+	}
+
+	return PlayerAllMapsRankingsInClub;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the rankings of the player in a club for every maps of several group
+ *
+ *	@param	_MapGroupUidList				The group and map uid of each map
+ *	@param	_ClubId									The club Id to fetch
+ *	@param	_Scores									Player's score to estimate current player's rank (MapUid => Score)
+ *	
+ *	@return													The request
+ */
+Http::LibCommonHttp_K_Request GetPlayerMapGroupUidListRankingsInAClub(Text[Text] _MapGroupUidList, Integer _ClubId, Integer[Text] _Scores) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetPlayerAllMapsRankingsInClubMultiGroups, [C_RouteParameter_ClubId => ""^_ClubId]);
+	declare Text QueryString = Http::CreateQueryString(C_QueryParameter_Scores, _Scores);
+	declare LibLeaderboardAPI_K_MapGroupUidList MapGroupUidList;
+	foreach (MapUid => GroupUid in _MapGroupUidList) {
+		if (MapUid != "" && GroupUid != "") {
+			MapGroupUidList.maps.add(LibLeaderboardAPI_K_MapGroupUid {
+				mapUid = MapUid,
+				groupUid = GroupUid
+			});
+		}
+	}
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Leaderboard^Route^QueryString, MapGroupUidList.tojson(), C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetPlayerMapGroupUidListRankingsInAClub request
+LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankingsInClub[] GetResponseFromGetPlayerMapGroupUidListRankingsInAClub(Http::LibCommonHttp_K_Request _Request) {
+	declare LibLeaderboardAPI_K_HttpGetPlayerMapRankingInClub[] HttpGetPlayerAllMapsRankingsInClub;
+	HttpGetPlayerAllMapsRankingsInClub.fromjson(Http::GetResult(_Request));
+
+	declare LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankingsInClub[] PlayerAllMapsRankingsInClub; 
+	foreach (HttpGetPlayerMapRankings in HttpGetPlayerAllMapsRankingsInClub) {
+		PlayerAllMapsRankingsInClub.add(LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankingsInClub {
+			LeaderboardGroupUid = HttpGetPlayerMapRankings.groupUid,
+			MapUid = HttpGetPlayerMapRankings.mapUid,
+			ClubId = HttpGetPlayerMapRankings.clubId,
+			Score = HttpGetPlayerMapRankings.score,
+			Position = HttpGetPlayerMapRankings.position
+		});
 	}
 
 	return PlayerAllMapsRankingsInClub;
@@ -586,6 +680,7 @@ LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankings GetResponseFromGetPlayerMap
 		);
 	}
 	MapRankings.LeaderboardGroupUid = HttpGetPlayerMapRankings.groupUid;
+	MapRankings.MapUid = HttpGetPlayerMapRankings.mapUid;
 	MapRankings.Score = HttpGetPlayerMapRankings.score;
 
 	return MapRankings;

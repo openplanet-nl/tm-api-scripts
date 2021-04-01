@@ -1,7 +1,7 @@
 /**
  *  Component : CampaignAPI
  */
-#Const Version    "2020-12-17"
+#Const Version    "2021-01-14"
 #Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/CampaignAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -128,7 +128,8 @@ LibCampaignAPI_K_ResponseGetMonthlyCampaignList GetResponseFromGetMonthlyCampaig
 				PopUpImageUrl = HttpMonthlyCampaign.media.popUpImageUrl,
 				LiveButtonBackgroundUrl = HttpMonthlyCampaign.media.liveButtonBackgroundUrl,
 				LiveButtonForegroundUrl = HttpMonthlyCampaign.media.liveButtonForegroundUrl
-			}
+			},
+			IsLive = False
 		};
 		for (MonthDay, 0, MonthlyCampaign.LastDay-1) {
 			MonthlyCampaign.DailyMaps[MonthDay] = CampaignStruct::LibCampaignStruct_K_DailyMap {
@@ -146,8 +147,19 @@ LibCampaignAPI_K_ResponseGetMonthlyCampaignList GetResponseFromGetMonthlyCampaig
 					Uid = HttpDailyMap.mapUid
 				},
 				RelativeStart = HttpDailyMap.relativeStart,
-				RelativeEnd = HttpDailyMap.relativeEnd
+				RelativeEnd = HttpDailyMap.relativeEnd,
+				RelativeNow = Now,
+				LoadStatus = CampaignStruct::C_LoadStatus_NotLoaded
 			};
+
+			if (
+				!MonthlyCampaign.IsLive && (
+					MonthlyCampaign.DailyMaps[HttpDailyMap.monthDay-1].RelativeStart > 0 ||
+					MonthlyCampaign.DailyMaps[HttpDailyMap.monthDay-1].RelativeEnd > 0
+				)
+			) {
+				MonthlyCampaign.IsLive = True;
+			}
 		}
 		ResponseMonthlyCampaignList.CampaignList.add(MonthlyCampaign);
 	}
@@ -241,7 +253,8 @@ C_Name,
 					Uid = HttpDailyMap.mapUid
 				},
 				RelativeStart = HttpDailyMap.relativeStart,
-				RelativeEnd = HttpDailyMap.relativeEnd
+				RelativeEnd = HttpDailyMap.relativeEnd,
+				RelativeNow = Now
 			};
 		}
 		ResponseMonthlyCampaignList.CampaignList.add(MonthlyCampaign);
