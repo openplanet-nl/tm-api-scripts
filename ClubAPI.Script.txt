@@ -1,7 +1,7 @@
 /**
  *	API for Clubs
  */
-#Const Version		"2021-01-20"
+#Const Version		"2021-04-09"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/ClubAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -92,6 +92,7 @@
 #Const C_Route_PostAddBucketItems "/:ClubId/bucket/:ActivityId/add"
 #Const C_Route_PostRemoveBucketItems "/:ClubId/bucket/:ActivityId/remove"
 #Const C_Route_GetBucketActivity "/:ClubId/bucket/:ActivityId"
+#Const C_Route_GetMapReviewActivities "/map-review"
 #Const C_Route_PostCreateMapReviewActivity "/:ClubId/map-review/create"
 #Const C_Route_PostEditMapReviewActivity "/:ClubId/map-review/:ActivityId/edit"
 #Const C_Route_PostJoinMapReviewActivity "/:ClubId/map-review/:ActivityId/join"
@@ -432,20 +433,36 @@
 
 #Struct ComponentClubAPI_K_HttpMapReviewActivity {
 	Integer activityId;
-	Text mediaUrl;
 	Text mapReviewUid;
+	Text mediaUrl;
 	Integer timeLimit;
 	Boolean scalable;
 	Boolean allowVoteSkipMap;
+	Boolean submissionLimitation;
 	Integer maxPlayer;
 	Boolean public;
 	Text game2webUrl;
+	Integer popularityValue;
+	Integer popularityValueBonus;
+	Integer popularityLevel;
+	Integer playerCount;
+	Integer submittedMapCount;
 	Integer id;
 	Integer clubId;
 	Text clubName;
 	Text name;
 	Integer creationTimestamp;
-	Boolean submissionLimitation;
+}
+
+#Struct ComponentClubAPI_K_HttpResponseGetMapReviews {
+	ComponentClubAPI_K_HttpMapReviewActivity[] clubMapReviewList;
+	Integer maxPage;
+	Integer itemCount;
+}
+
+#Struct ComponentClubAPI_K_ResponseGetMapReviews {
+	ClubStruct::LibStructuresClub_K_MapReview[] ClubMapReviews;
+	Integer ClubMapReviewsTotal;
 }
 
 #Struct ComponentClubAPI_K_HttpCreateNews {
@@ -1951,7 +1968,13 @@ ClubStruct::LibStructuresClub_K_MapReview GetResponseFromPostCreateOrEditMapRevi
 		AllowVoteSkipMap = HttpMapReviewActivity.allowVoteSkipMap,
 		Public = HttpMapReviewActivity.public,
 		Game2WebUrl = HttpMapReviewActivity.game2webUrl,
-		SubmissionLimitation = HttpMapReviewActivity.submissionLimitation
+		SubmissionLimitation = HttpMapReviewActivity.submissionLimitation,
+		PopularityValue = HttpMapReviewActivity.popularityValue,
+		PopularityValueBonus = HttpMapReviewActivity.popularityValueBonus,
+		PopularityLevel = HttpMapReviewActivity.popularityLevel,
+		PlayerCount = HttpMapReviewActivity.playerCount,
+		SubmittedMapCount = HttpMapReviewActivity.submittedMapCount,
+		CreationTimestamp = HttpMapReviewActivity.creationTimestamp
 	};
 }
 
@@ -2078,6 +2101,66 @@ Http::LibCommonHttp_K_Request PostUnsetFeatured(Integer _ClubId) {
 	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Club^Route, "", C_Headers);
 }
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get all club map review activities
+ *
+ *	@param	_Offset										The club map review activity map from which to start
+ *	@param	_Length										The number of club map review activities requested
+ *	@param	_FilterName								The filter for club map review activities
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetMapReviewActivities(Integer _Offset, Integer _Length, Text _FilterName) {
+	declare Text[Text] Query = [
+		C_QueryParameter_Offset => ""^_Offset, 
+		C_QueryParameter_Length => ""^_Length
+	];
+
+	if (_FilterName != "") {
+		Query[C_QueryParameter_Name] = _FilterName;
+	}
+
+	declare Text QueryString = Http::CreateQueryString(Query);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Club^C_Route_GetMapReviewActivities^QueryString, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMapReviewActivities request
+ComponentClubAPI_K_ResponseGetMapReviews GetResponseFromGetMapReviewActivities(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseGetMapReviews HttpResponseGetMapReviews;
+	HttpResponseGetMapReviews.fromjson(Http::GetResult(_Request));
+
+	declare ComponentClubAPI_K_ResponseGetMapReviews ResponseGetMapReviews;
+	foreach (HttpMapReview in HttpResponseGetMapReviews.clubMapReviewList) {
+		ResponseGetMapReviews.ClubMapReviews.add(ClubStruct::LibStructuresClub_K_MapReview {
+			Activity = ClubStruct::LibStructuresClub_K_Activity {
+				Id = HttpMapReview.activityId,
+				ClubId = HttpMapReview.clubId,
+				Name = HttpMapReview.name,
+				Type = "{{{ClubStruct::C_ClubActivity_MapReview}}}",
+				MediaUrl = HttpMapReview.mediaUrl
+			},
+			ClubName = HttpMapReview.clubName,
+			TimeLimit = HttpMapReview.timeLimit,
+			Scalable = HttpMapReview.scalable,
+			MaxPlayer = HttpMapReview.maxPlayer,
+			AllowVoteSkipMap = HttpMapReview.allowVoteSkipMap,
+			Public = HttpMapReview.public,
+			Game2WebUrl = HttpMapReview.game2webUrl,
+			SubmissionLimitation = HttpMapReview.submissionLimitation,
+			PopularityValue = HttpMapReview.popularityValue,
+			PopularityValueBonus = HttpMapReview.popularityValueBonus,
+			PopularityLevel = HttpMapReview.popularityLevel,
+			PlayerCount = HttpMapReview.playerCount,
+			SubmittedMapCount = HttpMapReview.submittedMapCount,
+			CreationTimestamp = HttpMapReview.creationTimestamp
+		});
+	}
+	ResponseGetMapReviews.ClubMapReviewsTotal = HttpResponseGetMapReviews.itemCount;
+
+	return ResponseGetMapReviews;
+
+}
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Get the component
  *

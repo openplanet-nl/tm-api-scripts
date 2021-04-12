@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-03-29"
+#Const Version		"2021-04-01"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -37,6 +37,7 @@
 #Const C_Route_PostMatchmakingCancel "/:MatchmakingId/cancel"
 #Const C_Route_GetLeaderboard "/:MatchmakingId/leaderboard/me"
 #Const C_Route_GetParticipantsScores "/:MatchId/participants"
+#Const C_Route_GetMatchmakingDivisionRules "/:MatchmakingId/division/display-rules"
 #Const C_Route_GetOfficialQueue "/:QueueName"
 
 #Const C_RouteParameter_MatchmakingId "MatchmakingId"
@@ -67,6 +68,8 @@
 #Struct ComponentMatchmakingAPI_K_HttpPlayerStatus {
 	ComponentMatchmakingAPI_K_HttpHeartbeat current_heartbeat;
 	ComponentMatchmakingAPI_K_HttpPenalty penalty;
+	Text current_division;
+	Integer current_progression;
 }
 #Struct ComponentMatchmakingAPI_K_HttpMatch {
 	Text join_link;
@@ -78,8 +81,10 @@
 }
 #Struct ComponentMatchmakingAPI_K_HttpParticipant {
 	Text player;
-	Integer leaderboard_score_delta;
-	Integer skill_level;
+	Integer leaderboard_score_delta; //@TODO remove in the future when CLUB API remove it
+	Integer skill_level; //@TODO remove in the future when CLUB API remove it
+	Text current_division;
+	Integer current_progression;
 }
 #Struct ComponentMatchmakingAPI_K_HttpMatchParticipants {
 	Boolean is_completed;
@@ -89,7 +94,17 @@
 	Integer id;
 	Text name;
 }
-
+#Struct ComponentMatchmakingAPI_K_HttpDivisionRules {
+	Text id;
+	Integer position;
+	Text display_rule_type;
+	Integer display_rule_minimum_points;
+	Integer display_rule_maximum_points;
+	Integer display_rule_minimum_rank;
+}
+#Struct ComponentMatchmakingAPI_K_HttpDisplayDivisionRules {
+	ComponentMatchmakingAPI_K_HttpDivisionRules[] divisions;
+}
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Functions
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -104,13 +119,13 @@ Text[Text] GetHeadersWithClubAuth() {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Get the players scores (skill level and score delta) for a given match
-Http::LibCommonHttp_K_Request Server_GetParticipantsScores(Text _MatchId) {
+Http::LibCommonHttp_K_Request Server_GetMatchParticipants(Text _MatchId) {
 	declare Text Route = Http::InjectRouteParameters(C_Route_GetParticipantsScores, [C_RouteParameter_MatchId => _MatchId]);
 
 	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Match^Route, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
 }
 
-MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants GetResponseFromGetParticipantsScores(Http::LibCommonHttp_K_Request _Request) {
+MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants GetResponseFromGetMatchParticipants(Http::LibCommonHttp_K_Request _Request) {
 	declare ComponentMatchmakingAPI_K_HttpMatchParticipants MatchParticipantsResponse;
 	MatchParticipantsResponse.fromjson(Http::GetResult(_Request));
 
@@ -119,7 +134,9 @@ MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants GetResponseFromG
 		Participants[Participant.player] = MatchmakingStruct::LibStructuresMatchmaking_K_Participant {
 			AccountId = Participant.player,
 			ScoreDelta = Participant.leaderboard_score_delta,
-			SkillLevel = Participant.skill_level
+			SkillLevel = Participant.skill_level,
+			CurrentDivision = Participant.current_division,
+			CurrentProgression = Participant.current_progression
 		};
 	}
 	
@@ -129,6 +146,41 @@ MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants GetResponseFromG
 	};
 
 	return MatchParticipants;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the matchmaking division rules
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	*
+	* @return 										The request
+*/
+Http::LibCommonHttp_K_Request Server_GetMatchmakingDivisionRules(Text _MatchmakingId) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_GetMatchmakingDivisionRules,
+		[C_RouteParameter_MatchmakingId => _MatchmakingId]
+	);
+	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Matchmaking^Route, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
+}
+
+MatchmakingStruct::LibStructuresMatchmaking_K_Division[Text] GetResponseFromGetMatchmakingDivisionRules(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpDisplayDivisionRules DisplayDivisionRulesResponse;
+	DisplayDivisionRulesResponse.fromjson(Http::GetResult(_Request));
+
+	declare MatchmakingStruct::LibStructuresMatchmaking_K_Division[Text] Divisions;
+
+	foreach (division in DisplayDivisionRulesResponse.divisions) {
+		Divisions[division.id] = MatchmakingStruct::LibStructuresMatchmaking_K_Division {
+			Id = division.id,
+			Position = division.position,
+			RuleType = division.display_rule_type,
+			MinimumPoints = division.display_rule_minimum_points,
+			MaximumPoints = division.display_rule_maximum_points,
+			MinimumRank = division.display_rule_minimum_rank
+		};
+	}
+
+	return Divisions;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Get the component
@@ -153,6 +205,7 @@ C_Name,
 #Const {{{P}}}C_Route_GetLeaderboard {{{dump(C_Route_GetLeaderboard)}}}
 #Const {{{P}}}C_Route_GetOfficialQueue {{{dump(C_Route_GetOfficialQueue)}}}
 #Const {{{P}}}C_RouteParameter_MatchmakingId {{{dump(C_RouteParameter_MatchmakingId)}}}
+#Const {{{P}}}C_Route_GetMatchmakingDivisionRules {{{dump(C_Route_GetMatchmakingDivisionRules)}}}
 #Const {{{P}}}C_RouteParameter_QueueName {{{dump(C_RouteParameter_QueueName)}}}
 
 /* Club API */
@@ -166,6 +219,8 @@ C_Name,
 {{{dumptype(ComponentMatchmakingAPI_K_HttpMatch)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerRanking)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpOfficialQueue)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpDivisionRules)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpDisplayDivisionRules)}}}
 """,
 """
 Text[Text] {{{P}}}GetHeadersWithClubAuth() {
@@ -233,8 +288,45 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 		Penalty = {{{MatchmakingStruct::P}}}K_Penalty {
 			CreationDate = PlayerStatusResponse.penalty.creation_date,
 			Points = PlayerStatusResponse.penalty.points
-		}
+		},
+		CurrentDivision = PlayerStatusResponse.current_division,
+		CurrentProgression = PlayerStatusResponse.current_progression
 	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the matchmaking division rules
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	*
+	* @return 										The request
+*/
+{{{Http::P}}}K_Request {{{P}}}GetMatchmakingDivisionRules(Integer _MatchmakingId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetMatchmakingDivisionRules,
+		[{{{P}}}C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, {{{P}}}GetHeadersWithClubAuth());
+}
+
+{{{MatchmakingStruct::P}}}K_Division[Text] {{{P}}}GetResponseFromGetMatchmakingDivisionRules({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpDisplayDivisionRules DisplayDivisionRulesResponse;
+	DisplayDivisionRulesResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{MatchmakingStruct::P}}}K_Division[Text] Divisions;
+
+	foreach (division in DisplayDivisionRulesResponse.divisions) {
+		Divisions[division.id] = {{{MatchmakingStruct::P}}}K_Division {
+			Id = division.id,
+			Position = division.position,
+			RuleType = division.display_rule_type,
+			MinimumPoints = division.display_rule_minimum_points,
+			MaximumPoints = division.display_rule_maximum_points,
+			MinimumRank = division.display_rule_minimum_rank
+		};
+	}
+
+	return Divisions;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -261,12 +353,11 @@ Integer {{{P}}}GetResponseFromGetOfficialQueue({{{Http::P}}}K_Request _Request) 
 
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-/** Start a request to get the player leaderboard by AccoutId
+/** Start a request to get the local player leaderboard
 	*
 	* @param _MatchmakingId				The id of matchmaking queue
-	* @param _AccountIds						The Accout Ids of requested players
 	*
-	* @return 													The request
+	* @return 										The request
 */
 {{{Http::P}}}K_Request {{{P}}}GetMatchmakingLeaderboard(Integer _MatchmakingId) {
 	declare Text Route = {{{Http::P}}}InjectRouteParameters(
