@@ -1,7 +1,7 @@
 /**
  *  Component : Leaderboard API
  */
-#Const Version    "2021-03-17"
+#Const Version    "2021-04-15"
 #Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/LeaderboardAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -46,6 +46,7 @@
 #Const C_Route_GetPlayerAllMapsRankingsInClubMultiGroups "/map/club/:ClubId"
 #Const C_Route_GetPlayerMapRankings "/:GroupUid/map/:MapUid"
 #Const C_Route_GetMapTopRankings "/:GroupUid/map/:MapUid/top"
+#Const C_Route_GetPlayersCloseToMedals "/:GroupUid/map/:MapUid/medals"
 #Const C_Route_GetSurroundingRankings "/:GroupUid/map/:MapUid/surround/:NbBefore/:NbAfter"
 #Const C_Route_GetPlayerMapRankingInClub "/:GroupUid/map/:MapUid/club/:ClubId"
 #Const C_Route_GetMapTopRankingsInClub "/:GroupUid/map/:MapUid/club/:ClubId/top"
@@ -161,6 +162,20 @@
 	LibLeaderboardAPI_K_HttpTopScoreLeaderboard[] tops;
 }
 
+#Struct LibLeaderboardAPI_K_HttpPlayerCloseToMedal {
+	Text medal;
+	Text accountId;
+	Text zoneId;
+	Text zoneName;
+	Integer score;
+}
+
+#Struct LibLeaderboardAPI_K_HttpGetPlayersCloseToMedals {
+	Text groupUid;
+	Text mapUid;
+	LibLeaderboardAPI_K_HttpPlayerCloseToMedal[] medals;
+}
+
 #Struct LibLeaderboardAPI_K_HttpGetSurroundingRankings {
 	Text groupUid;
 	Text mapUid;
@@ -234,6 +249,12 @@
 #Struct LibLeaderboardAPI_K_ResponseFromGetMapTopRankings {
 	Text LeaderboardGroupUid;
 	CampaignStruct::LibCampaignStruct_K_MapTopRanking[] TopRankings;
+}
+
+#Struct LibLeaderboardAPI_K_ResponseFromGetPlayersCloseToMedals {
+	Text LeaderboardGroupUid;
+	Text MapUid;
+	CampaignStruct::LibCampaignStruct_K_PlayerCloseToMedal[] Medals;
 }
 
 #Struct LibLeaderboardAPI_K_ResponseFromGetSurroundingRankings {
@@ -741,6 +762,44 @@ LibLeaderboardAPI_K_ResponseFromGetMapTopRankings GetResponseFromGetMapTopRankin
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to retrieve players near map's medals
+ *
+ *	@param	_GroupUid							The group Uid to fetch
+ *	@param	_MapUid								The map to fetch
+ *
+ *	@return												The request
+ */
+Http::LibCommonHttp_K_Request GetPlayersCloseToMedals(Text _GroupUid, Text _MapUid) {
+	declare Text Route = Http::InjectRouteParameters(C_Route_GetPlayersCloseToMedals, [
+		C_RouteParameter_GroupUid => _GroupUid, 
+		C_RouteParameter_MapUid => _MapUid
+	]);
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Leaderboard^Route, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetPlayersCloseToMedals request
+LibLeaderboardAPI_K_ResponseFromGetPlayersCloseToMedals GetResponseFromGetPlayersCloseToMedals(Http::LibCommonHttp_K_Request _Request) {
+	declare LibLeaderboardAPI_K_HttpGetPlayersCloseToMedals HttpGetPlayersCloseToMedals;
+	HttpGetPlayersCloseToMedals.fromjson(Http::GetResult(_Request));
+
+	declare LibLeaderboardAPI_K_ResponseFromGetPlayersCloseToMedals PlayersCloseToMedals;
+	foreach (PlayerCloseToMedal in HttpGetPlayersCloseToMedals.medals) {
+		PlayersCloseToMedals.Medals.add(CampaignStruct::LibCampaignStruct_K_PlayerCloseToMedal {
+			Medal = PlayerCloseToMedal.medal,
+			AccountId = PlayerCloseToMedal.accountId,
+			ZoneId = PlayerCloseToMedal.zoneId,
+			ZoneName = PlayerCloseToMedal.zoneName,
+			Score = PlayerCloseToMedal.score
+		});
+	}
+	PlayersCloseToMedals.LeaderboardGroupUid = HttpGetPlayersCloseToMedals.groupUid;
+	PlayersCloseToMedals.MapUid = HttpGetPlayersCloseToMedals.mapUid;
+
+	return PlayersCloseToMedals;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Start a request to get the rankings surrounding the player in a map
  * @ADV This is replaced by C_Route_GetMapLevels, but I leave it here, just in case.
  *
@@ -1153,9 +1212,11 @@ Text Component() {
 {{{dumptype(LibLeaderboardAPI_K_HttpGetPlayersTrophyRanking)}}}
 {{{dumptype(LibLeaderboardAPI_K_HttpTop)}}}
 {{{dumptype(LibLeaderboardAPI_K_HttpTopScore)}}}
+{{{dumptype(LibLeaderboardAPI_K_HttpPlayerCloseToMedal)}}}
 {{{dumptype(LibLeaderboardAPI_K_HttpGetTopRankingsInClub)}}}
 {{{dumptype(LibLeaderboardAPI_K_HttpGetMapTopRankingsInClub)}}}
 {{{dumptype(LibLeaderboardAPI_K_HttpGetPlayerMapRankingInClub)}}}
+{{{dumptype(LibLeaderboardAPI_K_HttpGetPlayersCloseToMedals)}}}
 {{{dumptype(LibLeaderboardAPI_K_TrophyPlayer)}}}
 {{{dumptype(LibLeaderboardAPI_K_BodyGetPlayersTrophyRanking)}}}
 {{{dumptype(LibLeaderboardAPI_K_ResponseFromGetPlayerMapRankingsInClub)}}}
@@ -1163,6 +1224,7 @@ Text Component() {
 {{{dumptype(LibLeaderboardAPI_K_ResponseFromGetPlayerTrophyRanking)}}}
 {{{dumptype(LibLeaderboardAPI_K_ResponseFromGetPlayersTrophyRanking)}}}
 {{{dumptype(LibLeaderboardAPI_K_ResponseFromGetTopRankingsInClub)}}}
+{{{dumptype(LibLeaderboardAPI_K_ResponseFromGetPlayersCloseToMedals)}}}
 {{{dumptype(LibLeaderboardAPI_K_HttpPlayerScore)}}}
 
 #Const {{{P}}}C_API_Trophy {{{dump(C_API_Trophy)}}}
@@ -1181,6 +1243,7 @@ Text Component() {
 #Const {{{P}}}C_Route_GetTopRankingsInClub {{{dump(C_Route_GetTopRankingsInClub)}}}
 #Const {{{P}}}C_Route_GetMapTopRankingsInClub {{{dump(C_Route_GetMapTopRankingsInClub)}}}
 #Const {{{P}}}C_Route_GetPlayerMapRankingInClub {{{dump(C_Route_GetPlayerMapRankingInClub)}}}
+#Const {{{P}}}C_Route_GetPlayersCloseToMedals {{{dump(C_Route_GetPlayersCloseToMedals)}}}
 
 #Const {{{P}}}C_Headers {{{dump(C_Headers)}}}
 	""",
@@ -1425,6 +1488,44 @@ Text Component() {
 		Score = HttpGetPlayerMapRankingInClub.score,
 		Position = HttpGetPlayerMapRankingInClub.position
 	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to retrieve players near map's medals
+ *
+ *	@param	_GroupUid							The group Uid to fetch
+ *	@param	_MapUid								The map to fetch
+ *
+ *	@return												The request
+ */
+{{{Http::P}}}K_Request {{{P}}}GetPlayersCloseToMedals(Text _GroupUid, Text _MapUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetPlayersCloseToMedals, [
+		{{{P}}}C_RouteParameter_GroupUid => _GroupUid, 
+		{{{P}}}C_RouteParameter_MapUid => _MapUid
+	]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_Leaderboard^Route, {{{P}}}C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetPlayersCloseToMedals request
+{{{P}}}K_ResponseFromGetPlayersCloseToMedals {{{P}}}GetResponseFromGetPlayersCloseToMedals({{{Http::P}}}K_Request _Request) {
+	declare {{{P}}}K_HttpGetPlayersCloseToMedals HttpGetPlayersCloseToMedals;
+	HttpGetPlayersCloseToMedals.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{P}}}K_ResponseFromGetPlayersCloseToMedals PlayersCloseToMedals;
+	foreach (PlayerCloseToMedal in HttpGetPlayersCloseToMedals.medals) {
+		PlayersCloseToMedals.Medals.add({{{CampaignStruct::P}}}K_PlayerCloseToMedal {
+			Medal = PlayerCloseToMedal.medal,
+			AccountId = PlayerCloseToMedal.accountId,
+			ZoneId = PlayerCloseToMedal.zoneId,
+			ZoneName = PlayerCloseToMedal.zoneName,
+			Score = PlayerCloseToMedal.score
+		});
+	}
+	PlayersCloseToMedals.LeaderboardGroupUid = HttpGetPlayersCloseToMedals.groupUid;
+	PlayersCloseToMedals.MapUid = HttpGetPlayersCloseToMedals.mapUid;
+
+	return PlayersCloseToMedals;
 }
 	""",
 	[

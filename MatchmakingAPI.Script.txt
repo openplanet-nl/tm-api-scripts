@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-04-01"
+#Const Version		"2021-04-14"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -341,14 +341,22 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 		{{{P}}}C_Route_GetOfficialQueue,
 		[{{{P}}}C_RouteParameter_QueueName => _QueueName]
 	);
-	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Official^Route, {{{P}}}GetHeadersWithClubAuth());
+	declare {{{Http::P}}}K_Request Request = {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Official^Route, {{{P}}}GetHeadersWithClubAuth());
+	Request = {{{Http::P}}}SetMetadata(Request, "Path", _QueueName);
+	return Request;
 }
 
-Integer {{{P}}}GetResponseFromGetOfficialQueue({{{Http::P}}}K_Request _Request) {
+{{{MatchmakingStruct::P}}}K_Queue {{{P}}}GetResponseFromGetOfficialQueue({{{Http::P}}}K_Request _Request) {
 	declare ComponentMatchmakingAPI_K_HttpOfficialQueue OfficialQueueResponse;
 	OfficialQueueResponse.fromjson({{{Http::P}}}GetResult(_Request));
 
-	return OfficialQueueResponse.id;
+	declare {{{MatchmakingStruct::P}}}K_Queue Queue = {{{MatchmakingStruct::P}}}K_Queue {
+		Id = OfficialQueueResponse.id,
+		Path = {{{Http::P}}}GetMetadata(_Request, "Path"),
+		Name = OfficialQueueResponse.name
+	};
+
+	return Queue;
 }
 
 
