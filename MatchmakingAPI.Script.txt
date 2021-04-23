@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-04-14"
+#Const Version		"2021-04-21"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -54,6 +54,9 @@
 // Structures
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /* Matchmaking API */
+#Struct ComponentMatchmakingAPI_K_SquadMembers {
+	Text[] play_with;
+}
 #Struct ComponentMatchmakingAPI_K_HttpHeartbeat {
 	Text status;
 	Integer creation_date;
@@ -213,6 +216,7 @@ C_Name,
 #Const {{{P}}}C_Route_GetMatchByLid {{{dump(C_Route_GetMatchByLid)}}}
 #Const {{{P}}}C_RouteParameter_MatchLid {{{dump(C_RouteParameter_MatchLid)}}}
 
+{{{dumptype(ComponentMatchmakingAPI_K_SquadMembers)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpHeartbeat)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPenalty)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerStatus)}}}
@@ -239,12 +243,15 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 	*
 	* @return 													The request
 */
-{{{Http::P}}}K_Request {{{P}}}PostMatchmakingHeartbeat(Integer _MatchmakingId) {
+{{{Http::P}}}K_Request {{{P}}}PostMatchmakingHeartbeat(Integer _MatchmakingId, Text[] _SquadMembersIds) {
 	declare Text Route = {{{Http::P}}}InjectRouteParameters(
 		{{{P}}}C_Route_PostMatchmakingHeartbeat,
 		[{{{P}}}C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
 	);
-	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, "", {{{P}}}GetHeadersWithClubAuth());
+	declare {{{P}}}K_SquadMembers SquadMembers = {{{P}}}K_SquadMembers {
+		play_with = _SquadMembersIds
+	};
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, SquadMembers.tojson(), {{{P}}}GetHeadersWithClubAuth());
 }
 
 {{{MatchmakingStruct::P}}}K_Heartbeat HeartbeatApiToScript(ComponentMatchmakingAPI_K_HttpHeartbeat _HeartbeatResponse) {
