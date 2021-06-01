@@ -1,7 +1,7 @@
 /**
  *	API for Browsers
  */
-#Const Version		"2021-03-17"
+#Const Version		"2021-05-27"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -792,7 +792,7 @@ C_Name,
 }
 
 #Struct {{{P}}}K_TaskResult_FileData {
-	CTaskResult_FileList TaskResultList;
+	Ident TaskId_GetFiles;
 	Integer TaskListState;
 	{{{P}}}K_FileBrowserData[Integer] Datas;
 }
@@ -852,8 +852,8 @@ C_Name,
 	Integer ChosenClubId;
 	{{{CampaignStruct::P}}}K_Campaign ChosenCampaign;
 	{{{CampaignStruct::P}}}K_MonthlyCampaign ChosenMonthlyCampaign;
-	CTaskResult_MapList TaskResultList_Map;
-	CTaskResult_ReplayList TaskResultList_Replay;
+	Ident TaskId_GetMaps;
+	Ident TaskId_GetReplays;
 	Integer MapTaskListState;
 	Integer ReplayTaskListState;
 	{{{P}}}K_TaskResult_FileData[Integer] Files; // Key is the data type of the Files
@@ -952,6 +952,9 @@ Void {{{P}}}FocusSkin(Boolean _Focused, Text _SkinName, Text _SkinPath) {
 		}
 		if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId != NullId) {
 			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId = MenuSceneMgr.ItemCreate({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, {{{ClubStruct::P}}}C_CameraSkinModel, _SkinPath, "");
+			if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId != NullId) {
+				MenuSceneMgr.CameraSetFromItem({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId);
+			}
 			Label_Skin.SetText(_SkinName);
 		}
 	} else {
@@ -1388,34 +1391,43 @@ Void {{{P}}}FetchLocalData(Integer _BrowserType, Text _Path) {
 	if ({{{Config::P}}}Get().IsDebug) BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
 	foreach (Type in CurrentBrowser.DataTypes) {
 		if (Type == {{{P}}}C_DataType_Map) {
-			if (CurrentBrowser.TaskResultList_Map != Null) {
-				DataFileMgr.TaskResult_Release(CurrentBrowser.TaskResultList_Map.Id);
+			if (CurrentBrowser.TaskId_GetMaps != NullId) {
+				DataFileMgr.TaskResult_Release(CurrentBrowser.TaskId_GetMaps);
+				{{{P}}}G_Browsers[_BrowserType].TaskId_GetMaps = NullId;
 			}
-			{{{P}}}G_Browsers[_BrowserType].TaskResultList_Map = DataFileMgr.Map_GetFilteredGameList(
+			declare CTaskResult_MapList Task = DataFileMgr.Map_GetFilteredGameList(
 				BrowserFilter,
 				_Path,
 				CurrentBrowser.IsFlatten,
 				CurrentBrowser.IsSortingByNameElseByDate,
 				CurrentBrowser.IsSortingFromAscendingOrder
 			);
+			if (Task != Null) {
+				{{{P}}}G_Browsers[_BrowserType].TaskId_GetMaps = Task.Id;
+			}
 		} else if (Type == {{{P}}}C_DataType_Replay) {
-			if (CurrentBrowser.TaskResultList_Replay != Null) {
-				DataFileMgr.TaskResult_Release(CurrentBrowser.TaskResultList_Replay.Id);
+			if (CurrentBrowser.TaskId_GetReplays != NullId) {
+				DataFileMgr.TaskResult_Release(CurrentBrowser.TaskId_GetReplays);
+				{{{P}}}G_Browsers[_BrowserType].TaskId_GetReplays = NullId;
 			}
-			{{{P}}}G_Browsers[_BrowserType].TaskResultList_Replay = DataFileMgr.Replay_GetFilteredGameList(
+			declare CTaskResult_ReplayList Task = DataFileMgr.Replay_GetFilteredGameList(
 				BrowserFilter,
 				_Path,
 				CurrentBrowser.IsFlatten,
 				CurrentBrowser.IsSortingByNameElseByDate,
 				CurrentBrowser.IsSortingFromAscendingOrder
 			);
+			if (Task != Null) {
+				{{{P}}}G_Browsers[_BrowserType].TaskId_GetReplays = Task.Id;
+			}
 		} else if (CurrentBrowser.Files.existskey(Type)) {
-			if (CurrentBrowser.Files[Type].TaskResultList != Null) {
-				DataFileMgr.TaskResult_Release(CurrentBrowser.Files[Type].TaskResultList.Id);
+			if (CurrentBrowser.Files[Type].TaskId_GetFiles != NullId) {
+				DataFileMgr.TaskResult_Release(CurrentBrowser.Files[Type].TaskId_GetFiles);
+				{{{P}}}G_Browsers[_BrowserType].Files[Type].TaskId_GetFiles = NullId;
 			}
 			declare CDataFileMgr::EMediaType MediaType = {{{P}}}GetMediaType(Type);
 			if (Type == {{{P}}}C_DataType_Script) BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
-			{{{P}}}G_Browsers[_BrowserType].Files[Type].TaskResultList = DataFileMgr.Media_GetFilteredGameList(
+			declare CTaskResult_FileList Task = DataFileMgr.Media_GetFilteredGameList(
 				MediaType,
 				BrowserFilter,
 				_Path,
@@ -1423,6 +1435,9 @@ Void {{{P}}}FetchLocalData(Integer _BrowserType, Text _Path) {
 				CurrentBrowser.IsSortingByNameElseByDate,
 				CurrentBrowser.IsSortingFromAscendingOrder
 			);
+			if (Task != Null) {
+				{{{P}}}G_Browsers[_BrowserType].Files[Type].TaskId_GetFiles = Task.Id;
+			}
 		}
 	}
 }
@@ -1856,7 +1871,11 @@ Void {{{P}}}AddBrowser(
 		if (!{{{P}}}C_DataType_IsFileList.exists(DataType)) continue;
 		Files[DataType] = {{{P}}}K_TaskResult_FileData{};
 		if (!_TaskResultFileLists.existskey(DataType)) continue;
-		Files[DataType].TaskResultList = _TaskResultFileLists[DataType];
+		if (_TaskResultFileLists[DataType] != Null) {
+			Files[DataType].TaskId_GetFiles = _TaskResultFileLists[DataType].Id;
+		} else {
+			Files[DataType].TaskId_GetFiles = NullId;
+		}
 	}
 
 	{{{P}}}G_Browsers[_BrowserType] = {{{P}}}K_Browser {
@@ -2722,7 +2741,15 @@ if (PageIsVisible) {
 	{{{P}}}PendingEvents = [];
 	foreach	(BrowserType => Browser in {{{P}}}G_Browsers) {
 		if (Browser.DataTypes.exists({{{P}}}C_DataType_Map)) {
-			declare CTaskResult_MapList TaskResultList <=> Browser.TaskResultList_Map;
+			declare CTaskResult_MapList TaskResultList;
+			if (Browser.TaskId_GetMaps != NullId) {
+				if (DataFileMgr.TaskResults.existskey(Browser.TaskId_GetMaps)) {
+					TaskResultList = (DataFileMgr.TaskResults[Browser.TaskId_GetMaps] as CTaskResult_MapList);
+				} else {
+					{{{P}}}G_Browsers[BrowserType].MapTaskListState = {{{P}}}C_TaskListState_HasFailed;
+					{{{P}}}G_Browsers[BrowserType].TaskId_GetMaps = NullId;
+				}
+			}
 			if (TaskResultList != Null) {
 				if (TaskResultList.HasSucceeded) {
 					declare {{{P}}}K_MapBrowserData[] NewMapBrowserData;
@@ -2745,6 +2772,7 @@ if (PageIsVisible) {
 								MapInfo = {{{CampaignStruct::P}}}K_Map {
 									Uid = MapInfo.MapUid,
 									Name = MapInfo.Name,
+									MapType = MapInfo.MapType,
 									AuthorLogin = MapInfo.AuthorLogin,
 									AuthorDisplayName = MapInfo.AuthorNickName,
 									AuthorTime = MapInfo.TMObjective_AuthorTime,
@@ -2773,14 +2801,22 @@ if (PageIsVisible) {
 				}
 				if (!TaskResultList.IsProcessing) {
 					DataFileMgr.TaskResult_Release(TaskResultList.Id);
-					{{{P}}}G_Browsers[BrowserType].TaskResultList_Map = Null;
+					{{{P}}}G_Browsers[BrowserType].TaskId_GetMaps = NullId;
 				} else {
 					{{{P}}}G_Browsers[BrowserType].MapTaskListState = {{{P}}}C_TaskListState_IsProcessing;
 				}
 			}
 		}
 		if (Browser.DataTypes.exists({{{P}}}C_DataType_Replay)) {
-			declare CTaskResult_ReplayList TaskResultList <=> Browser.TaskResultList_Replay;
+			declare CTaskResult_ReplayList TaskResultList;
+			if (Browser.TaskId_GetReplays != NullId) {
+				if (DataFileMgr.TaskResults.existskey(Browser.TaskId_GetReplays)) {
+					TaskResultList = (DataFileMgr.TaskResults[Browser.TaskId_GetReplays] as CTaskResult_ReplayList);
+				} else {
+					{{{P}}}G_Browsers[BrowserType].ReplayTaskListState = {{{P}}}C_TaskListState_HasFailed;
+					{{{P}}}G_Browsers[BrowserType].TaskId_GetReplays = NullId;
+				}
+			}
 			if (TaskResultList != Null) {
 				if (TaskResultList.HasSucceeded) {
 					declare {{{P}}}K_ReplayBrowserData[] NewReplays;
@@ -2813,7 +2849,7 @@ if (PageIsVisible) {
 				}
 				if (!TaskResultList.IsProcessing) {
 					DataFileMgr.TaskResult_Release(TaskResultList.Id);
-					{{{P}}}G_Browsers[BrowserType].TaskResultList_Replay = Null;
+					{{{P}}}G_Browsers[BrowserType].TaskId_GetReplays = NullId;
 				} else {
 					{{{P}}}G_Browsers[BrowserType].ReplayTaskListState = {{{P}}}C_TaskListState_IsProcessing;
 				}
@@ -2821,7 +2857,15 @@ if (PageIsVisible) {
 		}
 		foreach (DataType => File in Browser.Files) {
 			if (!Browser.DataTypes.exists(DataType)) continue;
-			declare CTaskResult_FileList TaskResultList <=> File.TaskResultList;
+			declare CTaskResult_FileList TaskResultList;
+			if (File.TaskId_GetFiles != NullId) {
+				if (DataFileMgr.TaskResults.existskey(File.TaskId_GetFiles)) {
+					TaskResultList = (DataFileMgr.TaskResults[File.TaskId_GetFiles] as CTaskResult_FileList);
+				} else {
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskListState = {{{P}}}C_TaskListState_HasFailed;
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskId_GetFiles = NullId;
+				}
+			}
 			if (TaskResultList != Null) {
 				if (TaskResultList.HasSucceeded) {
 					declare {{{P}}}K_FileBrowserData[] NewFileBrowserData;
@@ -2857,7 +2901,7 @@ if (PageIsVisible) {
 				}
 				if (!TaskResultList.IsProcessing) {
 					DataFileMgr.TaskResult_Release(TaskResultList.Id);
-					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskResultList = Null;
+					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskId_GetFiles = NullId;
 				} else {
 					{{{P}}}G_Browsers[BrowserType].Files[DataType].TaskListState = {{{P}}}C_TaskListState_IsProcessing;
 				}

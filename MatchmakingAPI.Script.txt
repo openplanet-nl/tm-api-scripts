@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-04-21"
+#Const Version		"2021-05-20"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -39,10 +39,13 @@
 #Const C_Route_GetParticipantsScores "/:MatchId/participants"
 #Const C_Route_GetMatchmakingDivisionRules "/:MatchmakingId/division/display-rules"
 #Const C_Route_GetOfficialQueue "/:QueueName"
+#Const C_Route_GetPlayersProgression "/:MatchmakingId/progression/players"
 
 #Const C_RouteParameter_MatchmakingId "MatchmakingId"
 #Const C_RouteParameter_MatchId "MatchId"
 #Const C_RouteParameter_QueueName "QueueName"
+
+#Const C_QueryParameter_Players "players"
 
 /* Club API */
 #Const C_API_Matches "/api/matches"
@@ -84,8 +87,6 @@
 }
 #Struct ComponentMatchmakingAPI_K_HttpParticipant {
 	Text player;
-	Integer leaderboard_score_delta; //@TODO remove in the future when CLUB API remove it
-	Integer skill_level; //@TODO remove in the future when CLUB API remove it
 	Text current_division;
 	Integer current_progression;
 }
@@ -107,6 +108,14 @@
 }
 #Struct ComponentMatchmakingAPI_K_HttpDisplayDivisionRules {
 	ComponentMatchmakingAPI_K_HttpDivisionRules[] divisions;
+}
+#Struct ComponentMatchmakingAPI_K_HttpPlayerProgression {
+	Text player;
+	Text division;
+	Integer progression;
+}
+#Struct ComponentMatchmakingAPI_K_HttpProgressions {
+	ComponentMatchmakingAPI_K_HttpPlayerProgression[] progressions;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Functions
@@ -132,12 +141,10 @@ MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants GetResponseFromG
 	declare ComponentMatchmakingAPI_K_HttpMatchParticipants MatchParticipantsResponse;
 	MatchParticipantsResponse.fromjson(Http::GetResult(_Request));
 
-	declare MatchmakingStruct::LibStructuresMatchmaking_K_Participant[Text] Participants;
+	declare MatchmakingStruct::LibStructuresMatchmaking_K_PlayerProgression[Text] Participants;
 	foreach (Participant in MatchParticipantsResponse.participants) {
-		Participants[Participant.player] = MatchmakingStruct::LibStructuresMatchmaking_K_Participant {
+		Participants[Participant.player] = MatchmakingStruct::LibStructuresMatchmaking_K_PlayerProgression {
 			AccountId = Participant.player,
-			ScoreDelta = Participant.leaderboard_score_delta,
-			SkillLevel = Participant.skill_level,
 			CurrentDivision = Participant.current_division,
 			CurrentProgression = Participant.current_progression
 		};
@@ -166,6 +173,23 @@ Http::LibCommonHttp_K_Request Server_GetMatchmakingDivisionRules(Text _Matchmaki
 	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Matchmaking^Route, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
 }
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the matchmaking division rules
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	*
+	* @return 										The request
+*/
+Http::LibCommonHttp_K_Request GetMatchmakingDivisionRules(Integer _MatchmakingId) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_GetMatchmakingDivisionRules,
+		[C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
+	);
+	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Matchmaking^Route, GetHeadersWithClubAuth());
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response of Server_GetMatchmakingDivisionRules and GetMatchmakingDivisionRules requests
 MatchmakingStruct::LibStructuresMatchmaking_K_Division[Text] GetResponseFromGetMatchmakingDivisionRules(Http::LibCommonHttp_K_Request _Request) {
 	declare ComponentMatchmakingAPI_K_HttpDisplayDivisionRules DisplayDivisionRulesResponse;
 	DisplayDivisionRulesResponse.fromjson(Http::GetResult(_Request));
@@ -185,6 +209,76 @@ MatchmakingStruct::LibStructuresMatchmaking_K_Division[Text] GetResponseFromGetM
 
 	return Divisions;
 }
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the official queue id
+	*
+	*	@param _QueueName									The name of the queue
+	*
+	* @return 													The request
+*/
+Http::LibCommonHttp_K_Request GetOfficialQueue(Text _QueueName) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_GetOfficialQueue,
+		[C_RouteParameter_QueueName => _QueueName]
+	);
+	declare Http::LibCommonHttp_K_Request Request = Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Official^Route, GetHeadersWithClubAuth());
+	Request = Http::SetMetadata(Request, "Path", _QueueName);
+	return Request;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response of the GetOfficialQueue request
+MatchmakingStruct::LibStructuresMatchmaking_K_Queue GetResponseFromGetOfficialQueue(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpOfficialQueue OfficialQueueResponse;
+	OfficialQueueResponse.fromjson(Http::GetResult(_Request));
+
+	declare Queue = MatchmakingStruct::LibStructuresMatchmaking_K_Queue {
+		Id = OfficialQueueResponse.id,
+		Path = Http::GetMetadata(_Request, "Path"),
+		Name = OfficialQueueResponse.name
+	};
+
+	return Queue;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the players progressions
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	* @param _AccountIds					The array of the players accountIds
+	*
+	* @return 										The request
+*/
+Http::LibCommonHttp_K_Request GetMatchmakingPlayersProgressions(Integer _MatchmakingId, Text[] _AccountIds) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_GetPlayersProgression,
+		[C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
+	);
+
+	declare QueryString = Http::CreateQueryString([
+		C_QueryParameter_Players => _AccountIds
+	]);
+
+	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Matchmaking^Route^QueryString, GetHeadersWithClubAuth());
+}
+
+MatchmakingStruct::LibStructuresMatchmaking_K_PlayerProgression[Text] GetResponseFromGetMatchmakingPlayersProgressions(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpProgressions ProgressionsResponse;
+	ProgressionsResponse.fromjson(Http::GetResult(_Request));
+
+	declare MatchmakingStruct::LibStructuresMatchmaking_K_PlayerProgression[Text] Progressions;
+	foreach (Progression in ProgressionsResponse.progressions) {
+		Progressions[Progression.player] = MatchmakingStruct::LibStructuresMatchmaking_K_PlayerProgression {
+			AccountId = Progression.player,
+			CurrentDivision = Progression.division,
+			CurrentProgression = Progression.progression
+		};
+	}
+
+	return Progressions;
+}
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Get the component
  *
@@ -210,6 +304,9 @@ C_Name,
 #Const {{{P}}}C_RouteParameter_MatchmakingId {{{dump(C_RouteParameter_MatchmakingId)}}}
 #Const {{{P}}}C_Route_GetMatchmakingDivisionRules {{{dump(C_Route_GetMatchmakingDivisionRules)}}}
 #Const {{{P}}}C_RouteParameter_QueueName {{{dump(C_RouteParameter_QueueName)}}}
+#Const {{{P}}}C_Route_GetPlayersProgression {{{dump(C_Route_GetPlayersProgression)}}}
+
+#Const {{{P}}}C_QueryParameter_Players {{{dump(C_QueryParameter_Players)}}}
 
 /* Club API */
 #Const {{{P}}}C_API_Matches {{{dump(C_API_Matches)}}}
@@ -225,6 +322,8 @@ C_Name,
 {{{dumptype(ComponentMatchmakingAPI_K_HttpOfficialQueue)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpDivisionRules)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpDisplayDivisionRules)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerProgression)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpProgressions)}}}
 """,
 """
 Text[Text] {{{P}}}GetHeadersWithClubAuth() {
@@ -452,6 +551,43 @@ Text {{{P}}}GetResponseFromGetMatchByLid({{{Http::P}}}K_Request _Request) {
 	declare ComponentMatchmakingAPI_K_HttpMatch MatchResponse;
 	MatchResponse.fromjson({{{Http::P}}}GetResult(_Request));
 	return MatchResponse.join_link;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the players progressions
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	* @param _AccountIds					The array of the players accountIds
+	*
+	* @return 										The request
+*/
+{{{Http::P}}}K_Request {{{P}}}GetMatchmakingPlayersProgressions(Integer _MatchmakingId, Text[] _AccountIds) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetPlayersProgression,
+		[{{{P}}}C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
+	);
+
+	declare QueryString ={{{Http::P}}}CreateQueryString([
+		{{{P}}}C_QueryParameter_Players => _AccountIds
+	]);
+
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route^QueryString, {{{P}}}GetHeadersWithClubAuth());
+}
+
+{{{MatchmakingStruct::P}}}K_PlayerProgression[Text] {{{P}}}GetResponseFromGetMatchmakingPlayersProgressions({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpProgressions ProgressionsResponse;
+	ProgressionsResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare {{{MatchmakingStruct::P}}}K_PlayerProgression[Text] Progressions;
+	foreach (Progression in ProgressionsResponse.progressions) {
+		Progressions[Progression.player] = {{{MatchmakingStruct::P}}}K_PlayerProgression {
+			AccountId = Progression.player,
+			CurrentDivision = Progression.division,
+			CurrentProgression = Progression.progression
+		};
+	}
+
+	return Progressions;
 }
 """,
 [

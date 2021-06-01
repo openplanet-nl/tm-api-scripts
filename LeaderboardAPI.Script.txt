@@ -1,7 +1,7 @@
 /**
  *  Component : Leaderboard API
  */
-#Const Version    "2021-04-15"
+#Const Version    "2021-04-27"
 #Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/LeaderboardAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -19,6 +19,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 #Const C_Name "lib-api-leaderboard" //< Component name
 #Const P "LibLeaderboardAPI_" //< Prefix use to differentiate functions/variables in the script
+#Const C_GroupUid_PersonalBest "Personal_Best" //< Used in leaderboards to get the personal best instead of the seasonal best
 
 #Const C_API_Leaderboard "/api/token/leaderboard/group"
 #Const C_API_Trophy "/api/token/leaderboard/trophy"
@@ -1041,7 +1042,7 @@ LibLeaderboardAPI_K_ResponseFromGetMapSurroundingRankingsInClub GetResponseFromG
  */
 Http::LibCommonHttp_K_Request GetServerSurrounding(Text _MapUid, Integer _NbBefore, Integer _NbAfter, Integer[Text] _PlayerAccountIds) {
 	declare Text Route = Http::InjectRouteParameters(C_API_ServerSurrounding, [
-		C_RouteParameter_GroupUid => "Personal_Best",
+		C_RouteParameter_GroupUid => C_GroupUid_PersonalBest,
 		C_RouteParameter_MapUid => _MapUid,
 		C_RouteParameter_NbBefore => ""^_NbBefore,
 		C_RouteParameter_NbAfter => ""^_NbAfter
@@ -1226,6 +1227,8 @@ Text Component() {
 {{{dumptype(LibLeaderboardAPI_K_ResponseFromGetTopRankingsInClub)}}}
 {{{dumptype(LibLeaderboardAPI_K_ResponseFromGetPlayersCloseToMedals)}}}
 {{{dumptype(LibLeaderboardAPI_K_HttpPlayerScore)}}}
+
+#Const {{{P}}}C_GroupUid_PersonalBest {{{dump(C_GroupUid_PersonalBest)}}}
 
 #Const {{{P}}}C_API_Trophy {{{dump(C_API_Trophy)}}}
 #Const {{{P}}}C_API_Leaderboard {{{dump(C_API_Leaderboard)}}}

@@ -1,7 +1,7 @@
 /**
  *	API for Competition
  */
-#Const Version		"2020-11-23"
+#Const Version		"2020-04-28"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/CompetitionAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -43,7 +43,7 @@
 #Const C_Route_GetChallengeMapPlayersResults "/:Challenge/records/players"
 #Const C_Route_GetCompetitionLeaderboard "/:Competition/leaderboard"
 #Const C_Route_GetCompetitionParticipantsLeaderboard "/:Competition/leaderboard/participants"
-#Const C_Route_PostCompetitionCreate "/create"
+#Const C_Route_PostCompetitionCreate_V2 "/v2/create"
 #Const C_Route_PostRegisterACurrentPlayer "/:ActivityId/register"
 #Const C_Route_GetMatchByCurrentMatchId "/:CurrentMatchId"
 #Const C_Route_PostUploadImgVertical "/:ActivityId/upload/vertical"
@@ -92,7 +92,7 @@
 	Text ident;
 }
 
-#Struct ComponentCompetitionAPI_K_HttpCreateCompetition {
+#Struct ComponentCompetitionAPI_K_HttpCreateCompetitionV2 {
 	Integer club_id;
 	Text name;
 	Text description;
@@ -102,10 +102,7 @@
 	Text mode;
 	ComponentCompetitionAPI_K_Map[] competition_maps;
 	ComponentCompetitionAPI_K_ClubCompetitionScriptSettingsType[] script_settings;
-	Text qualifier_start_date;
-	Text qualifier_end_date;
-	Text registrations_start_date;
-	Text registrations_end_date;
+	Integer qualifier_duration;
 	ComponentCompetitionAPI_K_Map[] qualifier_maps;
 }
 
@@ -479,7 +476,7 @@ C_Name,
 #Const {{{P}}}C_API_Match {{{dump(C_API_Match)}}}
 #Const {{{P}}}C_API_Challenge {{{dump(C_API_Challenge)}}}
 #Const {{{P}}}C_API_Competition {{{dump(C_API_Competition)}}}
-#Const {{{P}}}C_Route_PostCompetitionCreate {{{dump(C_Route_PostCompetitionCreate)}}}
+#Const {{{P}}}C_Route_PostCompetitionCreate_V2 {{{dump(C_Route_PostCompetitionCreate_V2)}}}
 #Const {{{P}}}C_Route_GetClubCompetition {{{dump(C_Route_GetClubCompetition)}}}
 #Const {{{P}}}C_Route_GetChallengeLeaderboard {{{dump(C_Route_GetChallengeLeaderboard)}}}
 #Const {{{P}}}C_Route_GetChallengePlayersResults {{{dump(C_Route_GetChallengePlayersResults)}}}
@@ -513,7 +510,7 @@ C_Name,
 {{{dumptype(ComponentCompetitionAPI_K_Error)}}}
 {{{dumptype(ComponentCompetitionAPI_K_ClubCompetitionZone)}}}
 {{{dumptype(ComponentCompetitionAPI_K_Map)}}}
-{{{dumptype(ComponentCompetitionAPI_K_HttpCreateCompetition)}}}
+{{{dumptype(ComponentCompetitionAPI_K_HttpCreateCompetitionV2)}}}
 {{{dumptype(ComponentCompetitionAPI_K_PlayerChallengeServer)}}}
 {{{dumptype(ComponentCompetitionAPI_K_PlayerChallenge)}}}
 {{{dumptype(ComponentCompetitionAPI_K_HttpCompetitionRound)}}}
@@ -929,7 +926,7 @@ Text[Text] {{{P}}}GetHeaderImg() {
  *	@return														The request
 */
 {{{Http::P}}}K_Request {{{P}}}PostCompetitionCreate({{{CompetitionStruct::P}}}K_CreateCompetition _CreateCompetition) {
-	declare ComponentCompetitionAPI_K_HttpCreateCompetition CreateCompetition = ComponentCompetitionAPI_K_HttpCreateCompetition {
+	declare ComponentCompetitionAPI_K_HttpCreateCompetitionV2 CreateCompetition = ComponentCompetitionAPI_K_HttpCreateCompetitionV2 {
 		club_id = _CreateCompetition.ClubId,
 		name = _CreateCompetition.Name,
 		description = _CreateCompetition.Description,
@@ -937,10 +934,7 @@ Text[Text] {{{P}}}GetHeaderImg() {
 		nb_players_per_match = _CreateCompetition.MaxPlayersPerMatch,
 		nb_players = _CreateCompetition.MaxPlayers_Total,
 		mode = _CreateCompetition.ScriptName,
-		qualifier_start_date = _CreateCompetition.QualifierStartDate,
-		qualifier_end_date = _CreateCompetition.QualifierEndDate, 
-		registrations_start_date = _CreateCompetition.RegistrationStartDate,
-		registrations_end_date = _CreateCompetition.RegistrationEndDate
+		qualifier_duration = _CreateCompetition.QualifierDuration
 		};
 		
 		foreach (setting in _CreateCompetition.ScriptSettings) {
@@ -965,7 +959,7 @@ Text[Text] {{{P}}}GetHeaderImg() {
 			});
 		}
 
-	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_ClubCompetition^{{{P}}}C_Route_PostCompetitionCreate, CreateCompetition.tojson(), {{{P}}}GetHeaders());
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_ClubCompetition^{{{P}}}C_Route_PostCompetitionCreate_V2, CreateCompetition.tojson(), {{{P}}}GetHeaders());
 }
 
 // Parse the response to PostCompetitionCreate request, return ActivityId.

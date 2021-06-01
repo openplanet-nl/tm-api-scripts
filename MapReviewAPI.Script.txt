@@ -1,7 +1,7 @@
 /**
  *  Component : MapReviewAPI, API for the server review system
  */
-#Const Version    "2021-01-20"
+#Const Version    "2021-05-26"
 #Const ScriptName "Libs/Nadeo/TMNext/TrackMania/API/MapReviewAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -17,20 +17,24 @@
 #Const C_Name "lib-map-review-api" //< Component name
 #Const P "LibMapReviewAPI_" //< Prefix use to differentiate functions/variables in the script
 
+#Const C_MapReviewUid_TOTD "totd"
+#Const C_MapReviewUid_Royal "royal"
+
 #Const C_API_MapReview "/api/token/map-review"
 
 #Const C_RouteParameter_MapUid "MapUid"
+#Const C_RouteParameter_MapReviewUid "MapReviewUid"
 
 #Const C_QueryParameter_Offset "offset"
 #Const C_QueryParameter_Length "length"
 #Const C_QueryParameter_WithFeedback "withFeedback"
 #Const C_QueryParameter_WithMapInfo "withMapInfo"
 
-#Const C_Route_GetConnect "/connect"
-#Const C_Route_GetWaitingTime "/waiting-time"
-#Const C_Route_PostAddMapQueue "/add-map-queue"
-#Const C_Route_GetSubmittedMaps "/submitted-map"
-#Const C_Route_PostRemoveSubmittedMap "/submitted-map/:MapUid"
+#Const C_Route_GetConnect "/:MapReviewUid/connect"
+#Const C_Route_GetWaitingTime "/:MapReviewUid/waiting-time"
+#Const C_Route_PostAddMapQueue "/:MapReviewUid/add-map-queue"
+#Const C_Route_GetSubmittedMaps "/:MapReviewUid/submitted-map"
+#Const C_Route_PostRemoveSubmittedMap "/:MapReviewUid/submitted-map/:MapUid"
 
 #Const C_Headers [
 	"Accept" => "application/json",
@@ -51,6 +55,7 @@ C_Name,
 #Const {{{P}}}C_API_MapReview {{{dump(C_API_MapReview)}}}
 
 #Const {{{P}}}C_RouteParameter_MapUid {{{dump(C_RouteParameter_MapUid)}}}
+#Const {{{P}}}C_RouteParameter_MapReviewUid {{{dump(C_RouteParameter_MapReviewUid)}}}
 
 #Const {{{P}}}C_QueryParameter_Offset {{{dump(C_QueryParameter_Offset)}}}
 #Const {{{P}}}C_QueryParameter_Length {{{dump(C_QueryParameter_Length)}}}
@@ -67,6 +72,16 @@ C_Name,
 
 #Struct {{{P}}}K_HttpJoinLink {
 	Text joinLink;
+	Boolean starting;
+	Boolean noMap;
+	Integer submissionWaitTimer;
+}
+
+#Struct {{{P}}}K_JoinLink {
+	Text JoinLink;
+	Boolean Starting;
+	Boolean NoMap;
+	Integer SubmissionWaitTimer;
 }
 
 #Struct {{{P}}}K_HttpMap {
@@ -150,8 +165,9 @@ C_Name,
  *
  *	@return													The request
  */
-{{{Http::P}}}K_Request {{{P}}}GetWaitingTime() {
-	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^{{{P}}}C_Route_GetWaitingTime, {{{P}}}C_Headers);
+{{{Http::P}}}K_Request {{{P}}}GetWaitingTime(Text _MapReviewUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetWaitingTime, [{{{P}}}C_RouteParameter_MapReviewUid => _MapReviewUid]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^Route, {{{P}}}C_Headers);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -167,8 +183,9 @@ Integer {{{P}}}GetResponseFromGetWaitingTime({{{Http::P}}}K_Request _Request) {
  *
  *	@return												The request
  */
-{{{Http::P}}}K_Request {{{P}}}GetConnect() {
-	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^{{{P}}}C_Route_GetConnect, {{{P}}}C_Headers);
+{{{Http::P}}}K_Request {{{P}}}GetConnect(Text _MapReviewUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetConnect, [{{{P}}}C_RouteParameter_MapReviewUid => _MapReviewUid]);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^Route, {{{P}}}C_Headers);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -179,24 +196,30 @@ Integer {{{P}}}GetResponseFromGetWaitingTime({{{Http::P}}}K_Request _Request) {
  *
  *	@return													The request
  */
-{{{Http::P}}}K_Request {{{P}}}PostAddMapQueue(Text _MapUid) {
+{{{Http::P}}}K_Request {{{P}}}PostAddMapQueue(Text _MapReviewUid, Text _MapUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_PostAddMapQueue, [{{{P}}}C_RouteParameter_MapReviewUid => _MapReviewUid]);
 	declare {{{P}}}K_HttpMap HttpMap = {{{P}}}K_HttpMap {
 		mapUid = _MapUid
 	};
-	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^{{{P}}}C_Route_PostAddMapQueue, HttpMap.tojson(), {{{P}}}C_Headers);
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^Route, HttpMap.tojson(), {{{P}}}C_Headers);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Parse the response to the GetConnect or PostAddMapQueue request
-Text {{{P}}}GetJoinLinkResponse({{{Http::P}}}K_Request _Request) {
+{{{P}}}K_JoinLink {{{P}}}GetJoinLinkResponse({{{Http::P}}}K_Request _Request) {
 	declare {{{P}}}K_HttpJoinLink HttpJoinLink;
 	HttpJoinLink.fromjson({{{Http::P}}}GetResult(_Request));
-	return HttpJoinLink.joinLink;
+	return {{{P}}}K_JoinLink {
+		JoinLink = HttpJoinLink.joinLink,
+		Starting = HttpJoinLink.starting,
+		NoMap = HttpJoinLink.noMap,
+		SubmissionWaitTimer = HttpJoinLink.submissionWaitTimer
+	};
 }
-Text {{{P}}}GetResponseFromGetConnect({{{Http::P}}}K_Request _Request) {
+{{{P}}}K_JoinLink {{{P}}}GetResponseFromGetConnect({{{Http::P}}}K_Request _Request) {
 	return {{{P}}}GetJoinLinkResponse(_Request);
 }
-Text {{{P}}}GetResponseFromPostAddMapQueue({{{Http::P}}}K_Request _Request) {
+{{{P}}}K_JoinLink {{{P}}}GetResponseFromPostAddMapQueue({{{Http::P}}}K_Request _Request) {
 	return {{{P}}}GetJoinLinkResponse(_Request);
 }
 
@@ -208,14 +231,15 @@ Text {{{P}}}GetResponseFromPostAddMapQueue({{{Http::P}}}K_Request _Request) {
  *
  *	@return														The request
  */
-{{{Http::P}}}K_Request {{{P}}}GetSubmittedMaps(Integer _Offset, Integer _Length) {
+{{{Http::P}}}K_Request {{{P}}}GetSubmittedMaps(Text _MapReviewUid, Integer _Offset, Integer _Length) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_GetSubmittedMaps, [{{{P}}}C_RouteParameter_MapReviewUid => _MapReviewUid]);
 	declare Text QueryString = {{{Http::P}}}CreateQueryString([
 		{{{P}}}C_QueryParameter_Offset => ""^_Offset,
 		{{{P}}}C_QueryParameter_Length => ""^_Length,
 		{{{P}}}C_QueryParameter_WithFeedback => "true",
 		{{{P}}}C_QueryParameter_WithMapInfo => "true"
 	]);
-	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^{{{P}}}C_Route_GetSubmittedMaps^QueryString, {{{P}}}C_Headers);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^Route^QueryString, {{{P}}}C_Headers);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -253,8 +277,14 @@ Text {{{P}}}GetResponseFromPostAddMapQueue({{{Http::P}}}K_Request _Request) {
  *
  *	@return													The request
  */
-{{{Http::P}}}K_Request {{{P}}}PostRemoveSubmittedMapRequest(Text _MapUid) {
-	declare Text Route = {{{Http::P}}}InjectRouteParameters({{{P}}}C_Route_PostRemoveSubmittedMap, [{{{P}}}C_RouteParameter_MapUid => _MapUid]);
+{{{Http::P}}}K_Request {{{P}}}PostRemoveSubmittedMapRequest(Text _MapReviewUid, Text _MapUid) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_PostRemoveSubmittedMap, 
+		[
+			{{{P}}}C_RouteParameter_MapUid => _MapUid,
+			{{{P}}}C_RouteParameter_MapReviewUid => _MapReviewUid
+		]
+	);
 	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIBaseUrl^{{{P}}}C_API_MapReview^Route, "", {{{P}}}C_Headers);
 }
 """,
