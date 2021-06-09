@@ -1,7 +1,7 @@
 /**
  *	API for Browsers
  */
-#Const Version		"2021-05-27"
+#Const Version		"2021-06-03"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -248,6 +248,7 @@ C_Name,
 	<style class="{{{P}}}image-base" halign="center" valign="center"/>
 	<style class="{{{P}}}text-base" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontSemiBold}}}" textsize="5" textcolor="FFF" textprefix="$i"/>
 </stylesheet>
+
 <framemodel id="{{{P}}}framemodel-options-element">
 	<quad
 		size="10.5 8"
@@ -364,8 +365,10 @@ C_Name,
 		class="{{{Scroll::C_Class_ActivationZone}}}"
 	/>
 </framemodel>
+
 <frame id="{{{P}}}frame-global">
 	<frameinstance modelid="{{{PopUpBackground::C_Name}}}" id="{{{P}}}frame-popup-background" data-pop-up-name="{{{C_Name}}}" z-index="-1" data-layout="{{{PopUpBackground::C_Layout_Type_Browser}}}"/>
+	<frameinstance id="{{{P}}}frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" />
 	<label id="{{{P}}}label-title" class="{{{P}}}text-base" halign="left" textsize="9" textcolor="FFF" pos="-116 61.5" textprefix="$t$i" textfont="{{{FontManager::C_GameFontBlack}}}" size="200 15" />
 	<label id="{{{P}}}label-sub-title" class="{{{P}}}text-base" halign="left" textsize="5" textcolor="FFF" pos="-116 53" textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" size="200 15" />
 	
@@ -391,6 +394,7 @@ C_Name,
 		<label textcolor="000" class="{{{P}}}text-base" halign="left" pos="-95 -.5" size="145 10" z-index="2" id="{{{P}}}label-path" textsize="3" textprefix="$i" textfont="{{{FontManager::C_GameFontSemiBold}}}"/>
 		<quad id="{{{P}}}quad9-bg-search" z-index="1" pos="-96 0" size="152 8" image="{{{Const::C_ImageUrl_Background_Path}}}" colorize="FFF" valign="center" halign="left"/>
 	</frame>
+
 	<frame id="{{{P}}}frame-options" pos="66.5 40.75">
 		<frameinstance modelid="{{{P}}}framemodel-options-element" id="{{{P}}}frame-options-refresh"
 			pos="-168 0"
@@ -667,7 +671,7 @@ C_Name,
 		<label id="{{{P}}}label-tooltip" class="{{{P}}}text-base" size="278 10" textsize="4" />
 	</frame>
 	
-	<frameinstance id="{{{P}}}frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" />
+	<label id="{{{P}}}label-error" pos="-65 -68.5" size="150 10" autonewline="1" maxline="2" textprefix="$i" halign="center" valign="center2" textsize="3" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_ErrorRed}}}"/>
 </frame>
 """,
 """
@@ -838,6 +842,7 @@ C_Name,
 	Boolean DisableCloudFolder;
 	Boolean DisplayFileNameTooltip;
 	Integer PositionFileNameTooltip;
+	Text[] FilterByMapType;
 }
 
 #Struct {{{P}}}K_Browser {
@@ -910,8 +915,14 @@ Text {{{P}}}GetCurrentBrowserName() {
 		IsBrowsingForEdition = False,
 		DisableCloudFolder = False,
 		DisplayFileNameTooltip = False,
-		PositionFileNameTooltip = {{{P}}}C_TooltipPos_Footer
+		PositionFileNameTooltip = {{{P}}}C_TooltipPos_Footer,
+		FilterByMapType = []
 	};
+}
+
+Void {{{P}}}ShowError(Text _ErrorMessage) {
+	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return;
+	({{{P}}}G_Frame_Global.GetFirstChild("{{{P}}}label-error") as CMlLabel).SetText(_ErrorMessage);
 }
 
 Void {{{P}}}FocusScroll(Boolean _IsScrollFocused) {
@@ -1108,6 +1119,7 @@ Void {{{P}}}SetPathLabelValue(Integer _BrowserType, Text _Value) {
 Void {{{P}}}FocusBrowser(Boolean _IsFocused) {
 	if (!{{{P}}}G_Browsers.existskey({{{P}}}G_Type_CurrentBrowser)) return;
 
+	{{{P}}}ShowError("");
 	{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].IsFocused = _IsFocused;
 	{{{P}}}FocusScroll(_IsFocused);
 	if (!_IsFocused) {
@@ -2766,7 +2778,8 @@ if (PageIsVisible) {
 						if (
 							(!Browser.Settings.ShowOnlyUserMaps || MapInfo.AuthorLogin == LocalUser.Login) &&
 							(!Browser.Settings.ShowOnlyPlayableMaps || MapInfo.IsPlayable) &&
-							(Browser.Settings.FilterByEnvironment.count <= 0 || Browser.Settings.FilterByEnvironment.exists(MapInfo.CollectionName)) 
+							(Browser.Settings.FilterByEnvironment.count <= 0 || Browser.Settings.FilterByEnvironment.exists(MapInfo.CollectionName)) &&
+							(Browser.Settings.FilterByMapType.count <= 0 || Browser.Settings.FilterByMapType.exists(MapInfo.MapType))
 						) {
 							NewMapBrowserData.add({{{P}}}K_MapBrowserData{
 								MapInfo = {{{CampaignStruct::P}}}K_Map {
@@ -3311,6 +3324,7 @@ if (PageIsVisible) {
 					}
 				}
 				case {{{Scroll::P}}}C_EventType_Select: {
+					{{{P}}}ShowError("");
 					switch ({{{P}}}GetDataType({{{P}}}G_Type_CurrentBrowser, Event.ToKey)) {
 						case {{{P}}}C_DataType_Campaign: {
 							declare Campaign = {{{P}}}GetCampaign({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
