@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-05-20"
+#Const Version		"2021-06-07"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -31,6 +31,7 @@
 #Const C_API_Matchmaking "/api/matchmaking"
 #Const C_API_Official "/api/official"
 #Const C_API_Match "/api/match"
+#Const C_API_Code "/api/code"
 #Const C_Route_PostMatchmakingHeartbeat "/:MatchmakingId/heartbeat"
 #Const C_Route_GetMatchmakingPlayerStatus "/:MatchmakingId/player-status"
 #Const C_Route_PostMatchmakingAccept "/:MatchmakingId/accept"
@@ -40,10 +41,12 @@
 #Const C_Route_GetMatchmakingDivisionRules "/:MatchmakingId/division/display-rules"
 #Const C_Route_GetOfficialQueue "/:QueueName"
 #Const C_Route_GetPlayersProgression "/:MatchmakingId/progression/players"
+#Const C_Route_GetCode "/:Code"
 
 #Const C_RouteParameter_MatchmakingId "MatchmakingId"
 #Const C_RouteParameter_MatchId "MatchId"
 #Const C_RouteParameter_QueueName "QueueName"
+#Const C_RouteParameter_Code "Code"
 
 #Const C_QueryParameter_Players "players"
 
@@ -57,8 +60,9 @@
 // Structures
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /* Matchmaking API */
-#Struct ComponentMatchmakingAPI_K_SquadMembers {
+#Struct ComponentMatchmakingAPI_K_HttpHeartbeatBody {
 	Text[] play_with;
+	Text code;
 }
 #Struct ComponentMatchmakingAPI_K_HttpHeartbeat {
 	Text status;
@@ -76,6 +80,7 @@
 	ComponentMatchmakingAPI_K_HttpPenalty penalty;
 	Text current_division;
 	Integer current_progression;
+	Text matchmaking_status;
 }
 #Struct ComponentMatchmakingAPI_K_HttpMatch {
 	Text join_link;
@@ -116,6 +121,9 @@
 }
 #Struct ComponentMatchmakingAPI_K_HttpProgressions {
 	ComponentMatchmakingAPI_K_HttpPlayerProgression[] progressions;
+}
+#Struct ComponentMatchmakingAPI_K_HttpCode {
+	Text code;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Functions
@@ -295,16 +303,19 @@ C_Name,
 #Const {{{P}}}C_Headers {{{dump(C_Headers)}}}
 #Const {{{P}}}C_API_Matchmaking {{{dump(C_API_Matchmaking)}}}
 #Const {{{P}}}C_API_Official {{{dump(C_API_Official)}}}
+#Const {{{P}}}C_API_Code {{{dump(C_API_Code)}}}
 #Const {{{P}}}C_Route_PostMatchmakingHeartbeat {{{dump(C_Route_PostMatchmakingHeartbeat)}}}
 #Const {{{P}}}C_Route_GetMatchmakingPlayerStatus {{{dump(C_Route_GetMatchmakingPlayerStatus)}}}
 #Const {{{P}}}C_Route_PostMatchmakingAccept {{{dump(C_Route_PostMatchmakingAccept)}}}
 #Const {{{P}}}C_Route_PostMatchmakingCancel {{{dump(C_Route_PostMatchmakingCancel)}}}
 #Const {{{P}}}C_Route_GetLeaderboard {{{dump(C_Route_GetLeaderboard)}}}
 #Const {{{P}}}C_Route_GetOfficialQueue {{{dump(C_Route_GetOfficialQueue)}}}
+#Const {{{P}}}C_Route_GetCode {{{dump(C_Route_GetCode)}}}
 #Const {{{P}}}C_RouteParameter_MatchmakingId {{{dump(C_RouteParameter_MatchmakingId)}}}
 #Const {{{P}}}C_Route_GetMatchmakingDivisionRules {{{dump(C_Route_GetMatchmakingDivisionRules)}}}
 #Const {{{P}}}C_RouteParameter_QueueName {{{dump(C_RouteParameter_QueueName)}}}
 #Const {{{P}}}C_Route_GetPlayersProgression {{{dump(C_Route_GetPlayersProgression)}}}
+#Const {{{P}}}C_RouteParameter_Code {{{dump(C_RouteParameter_Code)}}}
 
 #Const {{{P}}}C_QueryParameter_Players {{{dump(C_QueryParameter_Players)}}}
 
@@ -313,7 +324,7 @@ C_Name,
 #Const {{{P}}}C_Route_GetMatchByLid {{{dump(C_Route_GetMatchByLid)}}}
 #Const {{{P}}}C_RouteParameter_MatchLid {{{dump(C_RouteParameter_MatchLid)}}}
 
-{{{dumptype(ComponentMatchmakingAPI_K_SquadMembers)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpHeartbeatBody)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpHeartbeat)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPenalty)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerStatus)}}}
@@ -324,6 +335,7 @@ C_Name,
 {{{dumptype(ComponentMatchmakingAPI_K_HttpDisplayDivisionRules)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerProgression)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpProgressions)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpCode)}}}
 """,
 """
 Text[Text] {{{P}}}GetHeadersWithClubAuth() {
@@ -342,15 +354,16 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 	*
 	* @return 													The request
 */
-{{{Http::P}}}K_Request {{{P}}}PostMatchmakingHeartbeat(Integer _MatchmakingId, Text[] _SquadMembersIds) {
+{{{Http::P}}}K_Request {{{P}}}PostMatchmakingHeartbeat(Integer _MatchmakingId, Text[] _SquadMembersIds, Text _Code) {
 	declare Text Route = {{{Http::P}}}InjectRouteParameters(
 		{{{P}}}C_Route_PostMatchmakingHeartbeat,
 		[{{{P}}}C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
 	);
-	declare {{{P}}}K_SquadMembers SquadMembers = {{{P}}}K_SquadMembers {
-		play_with = _SquadMembersIds
+	declare {{{P}}}K_HttpHeartbeatBody HeartBeatBody = {{{P}}}K_HttpHeartbeatBody {
+		play_with = _SquadMembersIds,
+		code = _Code
 	};
-	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, SquadMembers.tojson(), {{{P}}}GetHeadersWithClubAuth());
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, HeartBeatBody.tojson(), {{{P}}}GetHeadersWithClubAuth());
 }
 
 {{{MatchmakingStruct::P}}}K_Heartbeat HeartbeatApiToScript(ComponentMatchmakingAPI_K_HttpHeartbeat _HeartbeatResponse) {
@@ -396,7 +409,8 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 			Points = PlayerStatusResponse.penalty.points
 		},
 		CurrentDivision = PlayerStatusResponse.current_division,
-		CurrentProgression = PlayerStatusResponse.current_progression
+		CurrentProgression = PlayerStatusResponse.current_progression,
+		MatchmakingStatus = PlayerStatusResponse.matchmaking_status
 	};
 }
 
@@ -588,6 +602,37 @@ Text {{{P}}}GetResponseFromGetMatchByLid({{{Http::P}}}K_Request _Request) {
 	}
 
 	return Progressions;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to generate a Party Code
+	*
+	* @return 											The request
+*/
+{{{Http::P}}}K_Request {{{P}}}GeneratePartyCode() {
+	return {{{Http::P}}}CreatePost({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Code, "", {{{P}}}GetHeadersWithClubAuth());
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to check if a party code is correct (meaning available in CLUB database)
+	*
+	* @param _Code								The code to check
+	*
+	* @return 										The request
+*/
+{{{Http::P}}}K_Request {{{P}}}CheckPartyCode(Text _Code) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetCode,
+		[{{{P}}}C_RouteParameter_Code => _Code]
+	);
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Code^Route, {{{P}}}GetHeadersWithClubAuth());
+}
+
+Text {{{P}}}GetResponseFromPartyCode({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpCode CodeResponse;
+	CodeResponse.fromjson({{{Http::P}}}GetResult(_Request));
+	declare Text Code = CodeResponse.code;
+	return Code;
 }
 """,
 [
