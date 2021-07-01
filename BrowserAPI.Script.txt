@@ -1,7 +1,7 @@
 /**
  *	API for Browsers
  */
-#Const Version		"2021-06-03"
+#Const Version		"2021-07-01"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -518,7 +518,7 @@ C_Name,
 		<quad id="{{{P}}}quad-contour-thumbnail" z-index="4" size="105 76.8" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Contour}}}"/>
 		<quad id="{{{P}}}quad-thumbnail-bg" z-index="0" colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Background}}}" size="105 76.8" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}"/>
 		<label id="{{{P}}}label-skin" z-index="5" size="65.5 8" pos="22 -12.5" class="{{{P}}}text-base" halign="left" valign="center2" textsize="5" textprefix="$i"/>
-		<camera id="{{{P}}}camera-skin" z-index="5" pos="51 -33" halign="center" valign="center" size="80 60" hidden="1"/>
+		<camera id="{{{P}}}camera-skin" z-index="5" pos="51 -33" halign="center" valign="center" size="80 75" hidden="1"/>
 	</frame>
 
 	<frame>
@@ -960,12 +960,13 @@ Void {{{P}}}FocusSkin(Boolean _Focused, Text _SkinName, Text _SkinPath) {
 	if (_Focused && {{{P}}}TL::EndsWith(".zip", _SkinPath)) {
 		if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId == NullId) {
 			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId = MenuSceneMgr.SceneCreate("Empty");
+			if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId != NullId) {
+				MenuSceneMgr.CameraSetLocation({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, <0., 2.5, -8.5>, 12., 30.);
+				MenuSceneMgr.PlaneReflectEnable({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, 0.63, Null, Null, Null, Null, -2.1);
+			}
 		}
 		if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId != NullId) {
 			{{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId = MenuSceneMgr.ItemCreate({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, {{{ClubStruct::P}}}C_CameraSkinModel, _SkinPath, "");
-			if ({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId != NullId) {
-				MenuSceneMgr.CameraSetFromItem({{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.SceneId, {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Skin.CurrentItemId);
-			}
 			Label_Skin.SetText(_SkinName);
 		}
 	} else {
@@ -3438,7 +3439,7 @@ if (PageIsVisible) {
 								declare HasPermission = True;
 								declare PermissionMessage = "";
 								if (!MapBrowserData.MapInfo.CreatedWithSimpleEditor && {{{P}}}G_Browsers[{{{P}}}G_Type_CurrentBrowser].Settings.IsBrowsingForEdition) {
-									HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_CreateAndUploadMap);
+									HasPermission = {{{UserStore::P}}}HasGamePermission({{{RBAC::P}}}C_GamePermission_OpenAdvancedMapEditor);
 									if (!HasPermission) PermissionMessage = {{{RBAC::P}}}C_GamePermissionMessage_OpenAdvancedMapEditor;
 								}
 								if (!HasPermission) {

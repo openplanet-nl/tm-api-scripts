@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-06-07"
+#Const Version		"2021-06-23"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -39,9 +39,9 @@
 #Const C_Route_GetLeaderboard "/:MatchmakingId/leaderboard/me"
 #Const C_Route_GetParticipantsScores "/:MatchId/participants"
 #Const C_Route_GetMatchmakingDivisionRules "/:MatchmakingId/division/display-rules"
-#Const C_Route_GetOfficialQueue "/:QueueName"
 #Const C_Route_GetPlayersProgression "/:MatchmakingId/progression/players"
 #Const C_Route_GetCode "/:Code"
+#Const C_Route_GetSummary "/summary"
 
 #Const C_RouteParameter_MatchmakingId "MatchmakingId"
 #Const C_RouteParameter_MatchId "MatchId"
@@ -55,6 +55,9 @@
 #Const C_Route_GetMatchByLid "/:Match"
 
 #Const C_RouteParameter_MatchLid "Match"
+
+/* Competition API */
+#Const C_API_SuperRoyal "/api/me/super-royal/current"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Structures
@@ -99,9 +102,10 @@
 	Boolean is_completed;
 	ComponentMatchmakingAPI_K_HttpParticipant[] participants;
 }
-#Struct ComponentMatchmakingAPI_K_HttpOfficialQueue {
-	Integer id;
-	Text name;
+#Struct ComponentMatchmakingAPI_K_HttpOfficialQueueSummary {
+	Integer ranked_3v3_id;
+	Integer royal_id;
+	Integer super_royal_id;
 }
 #Struct ComponentMatchmakingAPI_K_HttpDivisionRules {
 	Text id;
@@ -124,6 +128,11 @@
 }
 #Struct ComponentMatchmakingAPI_K_HttpCode {
 	Text code;
+}
+#Struct ComponentMatchmakingAPI_K_HttpSuperRoyal {
+	Integer starts_in;
+	Text status;
+	Text match_live_id;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Functions
@@ -219,35 +228,26 @@ MatchmakingStruct::LibStructuresMatchmaking_K_Division[Text] GetResponseFromGetM
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-/** Start a request to get the official queue id
-	*
-	*	@param _QueueName									The name of the queue
+/** Start a request to get the official queue ids summary
 	*
 	* @return 													The request
 */
-Http::LibCommonHttp_K_Request GetOfficialQueue(Text _QueueName) {
-	declare Text Route = Http::InjectRouteParameters(
-		C_Route_GetOfficialQueue,
-		[C_RouteParameter_QueueName => _QueueName]
-	);
-	declare Http::LibCommonHttp_K_Request Request = Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Official^Route, GetHeadersWithClubAuth());
-	Request = Http::SetMetadata(Request, "Path", _QueueName);
+Http::LibCommonHttp_K_Request GetOfficialQueueSummary() {
+	declare Http::LibCommonHttp_K_Request Request = Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Official^C_Route_GetSummary, GetHeadersWithClubAuth());
 	return Request;
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-// Parse the response of the GetOfficialQueue request
-MatchmakingStruct::LibStructuresMatchmaking_K_Queue GetResponseFromGetOfficialQueue(Http::LibCommonHttp_K_Request _Request) {
-	declare ComponentMatchmakingAPI_K_HttpOfficialQueue OfficialQueueResponse;
-	OfficialQueueResponse.fromjson(Http::GetResult(_Request));
+MatchmakingStruct::LibStructuresMatchmaking_K_QueueSummary GetResponseFromGetOfficialQueueSummary(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpOfficialQueueSummary OfficialQueueSummaryResponse;
+	OfficialQueueSummaryResponse.fromjson(Http::GetResult(_Request));
 
-	declare Queue = MatchmakingStruct::LibStructuresMatchmaking_K_Queue {
-		Id = OfficialQueueResponse.id,
-		Path = Http::GetMetadata(_Request, "Path"),
-		Name = OfficialQueueResponse.name
+	declare MatchmakingStruct::LibStructuresMatchmaking_K_QueueSummary QueueSummary = MatchmakingStruct::LibStructuresMatchmaking_K_QueueSummary {
+		Ranked_3v3_Id = OfficialQueueSummaryResponse.ranked_3v3_id,
+		Royal_Id = OfficialQueueSummaryResponse.royal_id,
+		Super_Royal_Id = OfficialQueueSummaryResponse.super_royal_id
 	};
 
-	return Queue;
+	return QueueSummary;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -304,12 +304,13 @@ C_Name,
 #Const {{{P}}}C_API_Matchmaking {{{dump(C_API_Matchmaking)}}}
 #Const {{{P}}}C_API_Official {{{dump(C_API_Official)}}}
 #Const {{{P}}}C_API_Code {{{dump(C_API_Code)}}}
+#Const {{{P}}}C_API_SuperRoyal {{{dump(C_API_SuperRoyal)}}}
+
 #Const {{{P}}}C_Route_PostMatchmakingHeartbeat {{{dump(C_Route_PostMatchmakingHeartbeat)}}}
 #Const {{{P}}}C_Route_GetMatchmakingPlayerStatus {{{dump(C_Route_GetMatchmakingPlayerStatus)}}}
 #Const {{{P}}}C_Route_PostMatchmakingAccept {{{dump(C_Route_PostMatchmakingAccept)}}}
 #Const {{{P}}}C_Route_PostMatchmakingCancel {{{dump(C_Route_PostMatchmakingCancel)}}}
 #Const {{{P}}}C_Route_GetLeaderboard {{{dump(C_Route_GetLeaderboard)}}}
-#Const {{{P}}}C_Route_GetOfficialQueue {{{dump(C_Route_GetOfficialQueue)}}}
 #Const {{{P}}}C_Route_GetCode {{{dump(C_Route_GetCode)}}}
 #Const {{{P}}}C_RouteParameter_MatchmakingId {{{dump(C_RouteParameter_MatchmakingId)}}}
 #Const {{{P}}}C_Route_GetMatchmakingDivisionRules {{{dump(C_Route_GetMatchmakingDivisionRules)}}}
@@ -330,12 +331,12 @@ C_Name,
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerStatus)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpMatch)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerRanking)}}}
-{{{dumptype(ComponentMatchmakingAPI_K_HttpOfficialQueue)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpDivisionRules)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpDisplayDivisionRules)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerProgression)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpProgressions)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpCode)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpSuperRoyal)}}}
 """,
 """
 Text[Text] {{{P}}}GetHeadersWithClubAuth() {
@@ -448,37 +449,6 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 
 	return Divisions;
 }
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-/** Start a request to get the official queue id
-	*
-	*	@param _QueueName									The name of the queue
-	*
-	* @return 													The request
-*/
-{{{Http::P}}}K_Request {{{P}}}GetOfficialQueue(Text _QueueName) {
-	declare Text Route = {{{Http::P}}}InjectRouteParameters(
-		{{{P}}}C_Route_GetOfficialQueue,
-		[{{{P}}}C_RouteParameter_QueueName => _QueueName]
-	);
-	declare {{{Http::P}}}K_Request Request = {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Official^Route, {{{P}}}GetHeadersWithClubAuth());
-	Request = {{{Http::P}}}SetMetadata(Request, "Path", _QueueName);
-	return Request;
-}
-
-{{{MatchmakingStruct::P}}}K_Queue {{{P}}}GetResponseFromGetOfficialQueue({{{Http::P}}}K_Request _Request) {
-	declare ComponentMatchmakingAPI_K_HttpOfficialQueue OfficialQueueResponse;
-	OfficialQueueResponse.fromjson({{{Http::P}}}GetResult(_Request));
-
-	declare {{{MatchmakingStruct::P}}}K_Queue Queue = {{{MatchmakingStruct::P}}}K_Queue {
-		Id = OfficialQueueResponse.id,
-		Path = {{{Http::P}}}GetMetadata(_Request, "Path"),
-		Name = OfficialQueueResponse.name
-	};
-
-	return Queue;
-}
-
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Start a request to get the local player leaderboard
@@ -633,6 +603,26 @@ Text {{{P}}}GetResponseFromPartyCode({{{Http::P}}}K_Request _Request) {
 	CodeResponse.fromjson({{{Http::P}}}GetResult(_Request));
 	declare Text Code = CodeResponse.code;
 	return Code;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to have the SuperRoyal infos
+	*
+	* @return 										The request
+*/
+{{{Http::P}}}K_Request {{{P}}}GetCurrentSuperRoyal() {
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_SuperRoyal, {{{P}}}GetHeadersWithClubAuth());
+}
+
+{{{MatchmakingStruct::P}}}K_SuperRoyal {{{P}}}GetResponseFromCurrentSuperRoyal({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpSuperRoyal SuperRoyalResponse;
+	SuperRoyalResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{MatchmakingStruct::P}}}K_SuperRoyal {
+		StartsIn = SuperRoyalResponse.starts_in,
+		Status = SuperRoyalResponse.status,
+		MatchLiveId = SuperRoyalResponse.match_live_id
+	};
 }
 """,
 [
