@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-06-23"
+#Const Version		"2021-07-26"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -42,6 +42,7 @@
 #Const C_Route_GetPlayersProgression "/:MatchmakingId/progression/players"
 #Const C_Route_GetCode "/:Code"
 #Const C_Route_GetSummary "/summary"
+#Const C_Route_GetMyStats "/:MatchmakingId/stats/me"
 
 #Const C_RouteParameter_MatchmakingId "MatchmakingId"
 #Const C_RouteParameter_MatchId "MatchId"
@@ -57,7 +58,9 @@
 #Const C_RouteParameter_MatchLid "Match"
 
 /* Competition API */
-#Const C_API_SuperRoyal "/api/me/super-royal/current"
+#Const C_API_SuperRoyal "/api/me/super-royal"
+#Const C_Route_Current "/current"
+#Const C_Route_Stats "/stats"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Structures
@@ -133,6 +136,27 @@
 	Integer starts_in;
 	Text status;
 	Text match_live_id;
+}
+#Struct ComponentMatchmakingAPI_K_HttpSuperRoyalStatistics {
+	Integer master_won;
+	Integer gold_won;
+	Integer silver_won;
+	Integer bronze_won;
+}
+#Struct ComponentMatchmakingAPI_K_PlayerStatistics {
+	Integer matchmaking_id;
+	Text player;
+	Text current_division;
+	Integer current_progression;
+	Text best_division;
+	Integer best_progression;
+	Integer best_progression_date;
+	Text previous_division;
+	Integer previous_progression;
+	Integer previous_progression_date;
+	Integer mvp_count;
+	Integer victories;
+	Integer played_matches;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Functions
@@ -317,6 +341,9 @@ C_Name,
 #Const {{{P}}}C_RouteParameter_QueueName {{{dump(C_RouteParameter_QueueName)}}}
 #Const {{{P}}}C_Route_GetPlayersProgression {{{dump(C_Route_GetPlayersProgression)}}}
 #Const {{{P}}}C_RouteParameter_Code {{{dump(C_RouteParameter_Code)}}}
+#Const {{{P}}}C_Route_GetMyStats {{{dump(C_Route_GetMyStats)}}}
+#Const {{{P}}}C_Route_Current {{{dump(C_Route_Current)}}}
+#Const {{{P}}}C_Route_Stats {{{dump(C_Route_Stats)}}}
 
 #Const {{{P}}}C_QueryParameter_Players {{{dump(C_QueryParameter_Players)}}}
 
@@ -337,6 +364,8 @@ C_Name,
 {{{dumptype(ComponentMatchmakingAPI_K_HttpProgressions)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpCode)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpSuperRoyal)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpSuperRoyalStatistics)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_PlayerStatistics)}}}
 """,
 """
 Text[Text] {{{P}}}GetHeadersWithClubAuth() {
@@ -611,7 +640,7 @@ Text {{{P}}}GetResponseFromPartyCode({{{Http::P}}}K_Request _Request) {
 	* @return 										The request
 */
 {{{Http::P}}}K_Request {{{P}}}GetCurrentSuperRoyal() {
-	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_SuperRoyal, {{{P}}}GetHeadersWithClubAuth());
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_SuperRoyal^{{{P}}}C_Route_Current, {{{P}}}GetHeadersWithClubAuth());
 }
 
 {{{MatchmakingStruct::P}}}K_SuperRoyal {{{P}}}GetResponseFromCurrentSuperRoyal({{{Http::P}}}K_Request _Request) {
@@ -622,6 +651,65 @@ Text {{{P}}}GetResponseFromPartyCode({{{Http::P}}}K_Request _Request) {
 		StartsIn = SuperRoyalResponse.starts_in,
 		Status = SuperRoyalResponse.status,
 		MatchLiveId = SuperRoyalResponse.match_live_id
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to have the SuperRoyal infos
+	*
+	* @return 										The request
+*/
+{{{Http::P}}}K_Request {{{P}}}GetSuperRoyalStats() {
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APICompetitionUrl^{{{P}}}C_API_SuperRoyal^{{{P}}}C_Route_Stats, {{{P}}}GetHeadersWithClubAuth());
+}
+
+{{{MatchmakingStruct::P}}}K_SuperRoyalStatistics {{{P}}}GetResponseFromSuperRoyalStats({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpSuperRoyalStatistics SuperRoyalStatsResponse;
+	SuperRoyalStatsResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{MatchmakingStruct::P}}}K_SuperRoyalStatistics {
+		BronzeVictories = SuperRoyalStatsResponse.bronze_won,
+		SilverVictories = SuperRoyalStatsResponse.silver_won,
+		GoldVictories = SuperRoyalStatsResponse.gold_won,
+		MasterVictories = SuperRoyalStatsResponse.master_won
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the player statistics in a specific matchmaking
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	*
+	* @return 										The request
+*/
+{{{Http::P}}}K_Request {{{P}}}GetPlayerMatchmakingStatistics(Integer _MatchmakingId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetMyStats,
+		[{{{P}}}C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
+	);
+
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, {{{P}}}GetHeadersWithClubAuth());
+}
+
+{{{MatchmakingStruct::P}}}K_PlayerStatistics {{{P}}}GetResponseFromGetPlayerMatchmakingStatistics({{{Http::P}}}K_Request _Request) {
+
+	declare ComponentMatchmakingAPI_K_PlayerStatistics PlayerStatisticsResponse;
+	PlayerStatisticsResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	return {{{MatchmakingStruct::P}}}K_PlayerStatistics {
+		MatchmakingId = PlayerStatisticsResponse.matchmaking_id,
+		AccountId = PlayerStatisticsResponse.player,
+		CurrentDivision = PlayerStatisticsResponse.current_division,
+		CurrentProgression = PlayerStatisticsResponse.current_progression,
+		BestDivision = PlayerStatisticsResponse.best_division,
+		BestProgression = PlayerStatisticsResponse.best_progression,
+		BestProgressionDate = PlayerStatisticsResponse.best_progression_date,
+		PreviousDivision = PlayerStatisticsResponse.previous_division,
+		PreviousProgression = PlayerStatisticsResponse.previous_progression,
+		PreviousProgressionDate = PlayerStatisticsResponse.previous_progression_date,
+		MVPCount = PlayerStatisticsResponse.mvp_count,
+		Victories = PlayerStatisticsResponse.victories,
+		PlayedMatches = PlayerStatisticsResponse.played_matches
 	};
 }
 """,

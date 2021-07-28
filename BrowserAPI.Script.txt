@@ -1,7 +1,7 @@
 /**
  *	API for Browsers
  */
-#Const Version		"2021-07-01"
+#Const Version		"2021-07-09"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -464,18 +464,20 @@ C_Name,
 		data-nav-zone="{{{Button::C_NavZone}}}"
 	/>
 
-	<frame id="{{{P}}}frame-selected-map" pos="58 22">
-		<label id="{{{P}}}label-map" z-index="5" size="65.5 8" pos="18.5 -12.5" class="{{{P}}}text-base" halign="left" valign="center2" textsize="5" textprefix="$i$t"/>
-		<label id="{{{P}}}label-author" z-index="5" size="65.5 8" pos="17.75 -18.75" class="{{{P}}}text-base" halign="left" valign="center2" textsize="5" textprefix="$i$t" textfont="{{{FontManager::C_GameFontRegular}}}"/>
-		<quad id="{{{P}}}quad-overlay-thumbnail" z-index="2" size="97 71" opacity=".4" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Overlay}}}" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}" colorize="000"/>
-		<quad id="{{{P}}}quad-contour-thumbnail" z-index="4" size="97 71" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Contour}}}"/>
-		<quad id="{{{P}}}quad-thumbnail" z-index="1" size="97 71" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}"/>
-		<quad id="{{{P}}}quad-map-thumbnail-bg" z-index="0" colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Background}}}" size="97 71" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}"/>
+	<frame id="{{{P}}}frame-selected-map" pos="108 -14">
+		<frame pos="-28 22" z-index="5">
+			<label id="{{{P}}}label-map" size="65.5 8" class="{{{P}}}text-base" halign="left" valign="center2" textsize="5" textprefix="$i$t"/>
+			<label id="{{{P}}}label-author" size="65.5 8" pos="-1.5 -6" class="{{{P}}}text-base" halign="left" valign="center2" textsize="4" textprefix="$i$t" textfont="{{{FontManager::C_GameFontRegular}}}"/>
+		</frame>
+		<quad id="{{{P}}}quad-overlay-thumbnail" z-index="2" size="97 71" opacity=".4" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Overlay}}}" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}" colorize="000" class="{{{P}}}image-base"/>
+		<quad id="{{{P}}}quad-contour-thumbnail" z-index="4" size="97 71" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Contour}}}" class="{{{P}}}image-base"/>
+		<quad id="{{{P}}}quad-thumbnail" z-index="1" size="86. 62." keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask2}}}" class="{{{P}}}image-base"/>
+		<quad id="{{{P}}}quad-map-thumbnail-bg" z-index="0" colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_PopUp_Thumbnail_Background}}}" size="97 71" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Thumbnail_Mask}}}" class="{{{P}}}image-base"/>
 
 		<frame
 			id="{{{P}}}button-editor-settings"
 			class="{{{Navigation::C_Class}}} {{{C_Class_Body}}}"
-			pos="70 -58" z-index="6"
+			pos="25 -22" z-index="6"
 			data-nav-inputs="select;cancel;left;up;down"
 			data-nav-targets="_;_;{{{P}}}frame-browser-map-scroll;{{{P}}}button-list-multi-select-select-all;{{{P}}}button-select-map"
 			data-nav-group="{{{C_NavGroupName}}}"
@@ -497,7 +499,7 @@ C_Name,
 		</frame>
 		<frameinstance modelid="{{{Button::C_Name}}}" id="{{{P}}}button-select-map"
 			data-text="{{{_("Select map")}}}"
-			pos="35.5 -90.5" data-size="48 8"
+			pos="-12 -54.5" data-size="48 8"
 			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}" data-focuscolor="FFF"
 			data-textcolor="FFF" data-textsize="2.8"
 			data-textfont="{{{FontManager::C_GameFontBlack}}}"
@@ -3434,7 +3436,7 @@ if (PageIsVisible) {
 						case {{{P}}}C_DataType_Map: {
 							declare {{{P}}}K_MapBrowserData MapBrowserData = {{{P}}}GetMapBrowserData({{{P}}}G_Type_CurrentBrowser, Event.ToKey);
 							if (MapBrowserData.SubFolder != "") {
-									{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, MapBrowserData.SubFolder);
+								{{{P}}}SetCurrentPath({{{P}}}G_Type_CurrentBrowser, MapBrowserData.SubFolder);
 							} else {
 								declare HasPermission = True;
 								declare PermissionMessage = "";
