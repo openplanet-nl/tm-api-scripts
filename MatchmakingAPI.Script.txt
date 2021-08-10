@@ -1,7 +1,7 @@
 /**
  *	API for Matchmaking
  */
-#Const Version		"2021-07-26"
+#Const Version		"2021-08-02"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/MatchmakingAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -36,7 +36,8 @@
 #Const C_Route_GetMatchmakingPlayerStatus "/:MatchmakingId/player-status"
 #Const C_Route_PostMatchmakingAccept "/:MatchmakingId/accept"
 #Const C_Route_PostMatchmakingCancel "/:MatchmakingId/cancel"
-#Const C_Route_GetLeaderboard "/:MatchmakingId/leaderboard/me"
+#Const C_Route_GetLeaderboard "/:MatchmakingId/leaderboard"
+#Const C_Route_Me "/me"
 #Const C_Route_GetParticipantsScores "/:MatchId/participants"
 #Const C_Route_GetMatchmakingDivisionRules "/:MatchmakingId/division/display-rules"
 #Const C_Route_GetPlayersProgression "/:MatchmakingId/progression/players"
@@ -143,7 +144,7 @@
 	Integer silver_won;
 	Integer bronze_won;
 }
-#Struct ComponentMatchmakingAPI_K_PlayerStatistics {
+#Struct ComponentMatchmakingAPI_K_HttpPlayerStatistics {
 	Integer matchmaking_id;
 	Text player;
 	Text current_division;
@@ -157,6 +158,16 @@
 	Integer mvp_count;
 	Integer victories;
 	Integer played_matches;
+}
+#Struct ComponentMatchmakingAPI_K_HttpPlayerLeaderboard {
+	Text player;
+	Integer rank;
+	Integer score;
+}
+#Struct ComponentMatchmakingAPI_K_HttpLeaderboard {
+	Text matchmaking_id;
+	Integer cardinal;
+	ComponentMatchmakingAPI_K_HttpPlayerLeaderboard[] results;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Functions
@@ -312,6 +323,38 @@ MatchmakingStruct::LibStructuresMatchmaking_K_PlayerProgression[Text] GetRespons
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the local player leaderboard
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	*
+	* @return 										The request
+*/
+Http::LibCommonHttp_K_Request Server_GetMatchmakingLeaderboard(Text _MatchmakingId) {
+	declare Text Route = Http::InjectRouteParameters(
+		C_Route_GetLeaderboard,
+		[C_RouteParameter_MatchmakingId => _MatchmakingId]
+	);
+
+	return Http::CreateGet(Config::Get().APIMatchmakingUrl^C_API_Matchmaking^Route, HttpServerAuthorizationHeader::GetHeadersWithClubAuthorization(C_Headers));
+}
+
+MatchmakingStruct::LibStructuresMatchmaking_K_PlayerLeaderboard[] GetResponseFromGetMatchmakingLeaderboard(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpLeaderboard LeaderboardResponse;
+	LeaderboardResponse.fromjson(Http::GetResult(_Request));
+
+	declare MatchmakingStruct::LibStructuresMatchmaking_K_PlayerLeaderboard[] Leaderboard = [];
+	foreach (Result in LeaderboardResponse.results) {
+		Leaderboard.add (MatchmakingStruct::LibStructuresMatchmaking_K_PlayerLeaderboard {
+			AccountId = Result.player,
+			Rank = Result.rank,
+			Score = Result.score
+		});
+	}
+
+	return Leaderboard;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 /** Get the component
  *
  *	@return														The component id
@@ -335,6 +378,7 @@ C_Name,
 #Const {{{P}}}C_Route_PostMatchmakingAccept {{{dump(C_Route_PostMatchmakingAccept)}}}
 #Const {{{P}}}C_Route_PostMatchmakingCancel {{{dump(C_Route_PostMatchmakingCancel)}}}
 #Const {{{P}}}C_Route_GetLeaderboard {{{dump(C_Route_GetLeaderboard)}}}
+#Const {{{P}}}C_Route_Me {{{dump(C_Route_Me)}}}
 #Const {{{P}}}C_Route_GetCode {{{dump(C_Route_GetCode)}}}
 #Const {{{P}}}C_RouteParameter_MatchmakingId {{{dump(C_RouteParameter_MatchmakingId)}}}
 #Const {{{P}}}C_Route_GetMatchmakingDivisionRules {{{dump(C_Route_GetMatchmakingDivisionRules)}}}
@@ -365,7 +409,9 @@ C_Name,
 {{{dumptype(ComponentMatchmakingAPI_K_HttpCode)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpSuperRoyal)}}}
 {{{dumptype(ComponentMatchmakingAPI_K_HttpSuperRoyalStatistics)}}}
-{{{dumptype(ComponentMatchmakingAPI_K_PlayerStatistics)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerStatistics)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpPlayerLeaderboard)}}}
+{{{dumptype(ComponentMatchmakingAPI_K_HttpLeaderboard)}}}
 """,
 """
 Text[Text] {{{P}}}GetHeadersWithClubAuth() {
@@ -486,6 +532,35 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 	*
 	* @return 										The request
 */
+{{{Http::P}}}K_Request {{{P}}}GetMyMatchmakingLeaderboard(Integer _MatchmakingId) {
+	declare Text Route = {{{Http::P}}}InjectRouteParameters(
+		{{{P}}}C_Route_GetLeaderboard,
+		[{{{P}}}C_RouteParameter_MatchmakingId => ""^_MatchmakingId]
+	);
+
+	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route^{{{P}}}C_Route_Me, {{{P}}}GetHeadersWithClubAuth());
+}
+
+{{{MatchmakingStruct::P}}}K_PlayerRank {{{P}}}GetResponseFromGetMyMatchmakingLeaderboard({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpPlayerRanking LeaderboardResponse;
+	LeaderboardResponse.fromjson({{{Http::P}}}GetResult(_Request));
+
+	declare Leaderboard = {{{MatchmakingStruct::P}}}K_PlayerRank {
+		MatchmakingId = LeaderboardResponse.matchmaking_id,
+		AccountId = LeaderboardResponse.player,
+		Score = LeaderboardResponse.score
+	};
+
+	return Leaderboard;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get the local player leaderboard
+	*
+	* @param _MatchmakingId				The id of matchmaking queue
+	*
+	* @return 										The request
+*/
 {{{Http::P}}}K_Request {{{P}}}GetMatchmakingLeaderboard(Integer _MatchmakingId) {
 	declare Text Route = {{{Http::P}}}InjectRouteParameters(
 		{{{P}}}C_Route_GetLeaderboard,
@@ -495,15 +570,18 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 	return {{{Http::P}}}CreateGet({{{Config::P}}}Get().APIMatchmakingUrl^{{{P}}}C_API_Matchmaking^Route, {{{P}}}GetHeadersWithClubAuth());
 }
 
-{{{MatchmakingStruct::P}}}K_PlayerRank {{{P}}}GetResponseFromGetMatchmakingLeaderboard({{{Http::P}}}K_Request _Request) {
-	declare ComponentMatchmakingAPI_K_HttpPlayerRanking LeaderboardResponse;
+{{{MatchmakingStruct::P}}}K_PlayerLeaderboard[] {{{P}}}GetResponseFromGetMatchmakingLeaderboard({{{Http::P}}}K_Request _Request) {
+	declare ComponentMatchmakingAPI_K_HttpLeaderboard LeaderboardResponse;
 	LeaderboardResponse.fromjson({{{Http::P}}}GetResult(_Request));
 
-	declare Leaderboard = {{{MatchmakingStruct::P}}}K_PlayerRank {
-		MatchmakingId = LeaderboardResponse.matchmaking_id,
-		AccountId = LeaderboardResponse.player,
-		Score = LeaderboardResponse.score
-	};
+	declare Leaderboard = {{{MatchmakingStruct::P}}}K_PlayerLeaderboard[];
+	foreach (Result in LeaderboardResponse.results) {
+		Leaderboard.add ({{{MatchmakingStruct::P}}}K_PlayerLeaderboard {
+			AccountId = Result.player,
+			Rank = Result.rank,
+			Score = Result.score
+		});
+	}
 
 	return Leaderboard;
 }
@@ -693,7 +771,7 @@ Text {{{P}}}GetResponseFromPartyCode({{{Http::P}}}K_Request _Request) {
 
 {{{MatchmakingStruct::P}}}K_PlayerStatistics {{{P}}}GetResponseFromGetPlayerMatchmakingStatistics({{{Http::P}}}K_Request _Request) {
 
-	declare ComponentMatchmakingAPI_K_PlayerStatistics PlayerStatisticsResponse;
+	declare ComponentMatchmakingAPI_K_HttpPlayerStatistics PlayerStatisticsResponse;
 	PlayerStatisticsResponse.fromjson({{{Http::P}}}GetResult(_Request));
 
 	return {{{MatchmakingStruct::P}}}K_PlayerStatistics {
