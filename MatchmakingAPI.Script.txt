@@ -344,7 +344,7 @@ MatchmakingStruct::LibStructuresMatchmaking_K_PlayerLeaderboard[] GetResponseFro
 
 	declare MatchmakingStruct::LibStructuresMatchmaking_K_PlayerLeaderboard[] Leaderboard = [];
 	foreach (Result in LeaderboardResponse.results) {
-		Leaderboard.add (MatchmakingStruct::LibStructuresMatchmaking_K_PlayerLeaderboard {
+		Leaderboard.add(MatchmakingStruct::LibStructuresMatchmaking_K_PlayerLeaderboard {
 			AccountId = Result.player,
 			Rank = Result.rank,
 			Score = Result.score
@@ -576,7 +576,7 @@ Text[Text] {{{P}}}GetHeadersWithClubAuth() {
 
 	declare Leaderboard = {{{MatchmakingStruct::P}}}K_PlayerLeaderboard[];
 	foreach (Result in LeaderboardResponse.results) {
-		Leaderboard.add ({{{MatchmakingStruct::P}}}K_PlayerLeaderboard {
+		Leaderboard.add({{{MatchmakingStruct::P}}}K_PlayerLeaderboard {
 			AccountId = Result.player,
 			Rank = Result.rank,
 			Score = Result.score
