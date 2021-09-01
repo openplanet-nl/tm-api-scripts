@@ -1,7 +1,7 @@
 /**
  *	API for Clubs
  */
-#Const Version		"2021-04-09"
+#Const Version		"2021-08-27"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/ClubAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -35,6 +35,7 @@
 #Const C_RouteParameter_MapUid "MapUid"
 #Const C_RouteParameter_Position "Position"
 #Const C_RouteParameter_BucketType "BucketType"
+#Const C_RouteParameter_Login "Login"
 
 #Const C_QueryParameter_Offset "offset"
 #Const C_QueryParameter_Length "length"
@@ -57,6 +58,7 @@
 #Const C_Route_PostClubMemberRequestAccept "/:ClubId/member/request/:AccountId/accept"
 #Const C_Route_PostClubMemberRequestDecline "/:ClubId/member/request/:AccountId/decline"
 #Const C_Route_GetClubMemberWithId "/:ClubId/member/:AccountId"
+#Const C_Route_GetClubMemberFromLogin "/:ClubId/member/:Login/from-login"
 #Const C_Route_DeleteClubMemberWithId "/:ClubId/member/:AccountId/delete"
 #Const C_Route_EditClubMemberWithId "/:ClubId/member/:AccountId/edit"
 #Const C_Route_PostCreateClubMember "/:ClubId/member/create"
@@ -766,6 +768,41 @@ Http::LibCommonHttp_K_Request GetClubMemberWithId(Integer _ClubId, Text _Account
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // Parse the response to the GetClubMemberId request
 ClubStruct::LibStructuresClub_K_Member GetResponseFromGetClubMemberWithId(Http::LibCommonHttp_K_Request _Request) {
+	declare ComponentClubAPI_K_HttpResponseGetClubMemberId HttpResponseGetClubMemberId;
+	HttpResponseGetClubMemberId.fromjson(Http::GetResult(_Request));
+
+	return ClubStruct::LibStructuresClub_K_Member {
+		AccountId = HttpResponseGetClubMemberId.accountId,
+		Role = HttpResponseGetClubMemberId.role,
+		JoinDate = HttpResponseGetClubMemberId.creationTimestamp,
+		VIP = HttpResponseGetClubMemberId.vip,
+		Moderator = HttpResponseGetClubMemberId.moderator,
+		HasFeatured = HttpResponseGetClubMemberId.hasFeatured
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get info on a club member
+ *
+ *	@param	_ClubId									  The Id of the club to fetch
+ *	@param	_Login										The login of the member to fetch
+ *
+ *	@return														The request
+ */
+Http::LibCommonHttp_K_Request GetClubMemberFromLogin(Integer _ClubId, Text _Login) {
+	declare Text Url = Config::Get().APIBaseUrl^C_API_Club^Http::InjectRouteParameters(
+		C_Route_GetClubMemberFromLogin,
+		[
+			C_RouteParameter_ClubId => ""^_ClubId, 
+			C_RouteParameter_Login => _Login
+		]
+	);
+	return Http::CreateGet(Url, C_Headers);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetClubMemberFromLogin request
+ClubStruct::LibStructuresClub_K_Member GetResponseFromGetClubMemberFromLogin(Http::LibCommonHttp_K_Request _Request) {
 	declare ComponentClubAPI_K_HttpResponseGetClubMemberId HttpResponseGetClubMemberId;
 	HttpResponseGetClubMemberId.fromjson(Http::GetResult(_Request));
 
