@@ -1,7 +1,7 @@
 /**
  *	API for Browsers
  */
-#Const Version		"2021-07-09"
+#Const Version		"2021-09-14"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -2788,7 +2788,8 @@ if (PageIsVisible) {
 								MapInfo = {{{CampaignStruct::P}}}K_Map {
 									Uid = MapInfo.MapUid,
 									Name = MapInfo.Name,
-									MapType = MapInfo.MapType,
+									Type = MapInfo.MapType,
+									Style = MapInfo.MapStyle,
 									AuthorLogin = MapInfo.AuthorLogin,
 									AuthorDisplayName = MapInfo.AuthorNickName,
 									AuthorTime = MapInfo.TMObjective_AuthorTime,
