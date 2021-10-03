@@ -369,7 +369,7 @@ C_Name,
 <frame id="{{{P}}}frame-global">
 	<frameinstance modelid="{{{PopUpBackground::C_Name}}}" id="{{{P}}}frame-popup-background" data-pop-up-name="{{{C_Name}}}" z-index="-1" data-layout="{{{PopUpBackground::C_Layout_Type_Browser}}}"/>
 	<frameinstance id="{{{P}}}frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" />
-	<label id="{{{P}}}label-title" class="{{{P}}}text-base" halign="left" textsize="9" textcolor="FFF" pos="-116 61.5" textprefix="$t$i" textfont="{{{FontManager::C_GameFontBlack}}}" size="200 15" />
+	<label id="{{{P}}}label-title" class="{{{P}}}text-base" halign="left" textsize="9" textcolor="FFF" pos="-116 61.5" textprefix="$t$i" textfont="{{{FontManager::C_GameFontExtraBold}}}" size="200 15" />
 	<label id="{{{P}}}label-sub-title" class="{{{P}}}text-base" halign="left" textsize="5" textcolor="FFF" pos="-116 53" textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" size="200 15" />
 	
 	<frame id="{{{P}}}frame-path-name" pos="0 40.75">
@@ -450,7 +450,7 @@ C_Name,
 		data-size="48 8"
 		data-textsize="2.8"
 		data-textitalicslope=".2"
-		data-textfont="{{{FontManager::C_GameFontBlack}}}"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
 		data-image="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
 		data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
 		data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
@@ -502,7 +502,7 @@ C_Name,
 			pos="-12 -54.5" data-size="48 8"
 			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}" data-focuscolor="FFF"
 			data-textcolor="FFF" data-textsize="2.8"
-			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
 			data-image="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
 			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
 			data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
@@ -620,7 +620,7 @@ C_Name,
 			data-size="48 8"
 			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}" data-focuscolor="FFF"
 			data-textcolor="FFF" data-textsize="2.8"
-			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
 			data-image="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
 			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_CreateMap}}}"
 			data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
@@ -640,7 +640,7 @@ C_Name,
 			data-bgempty="1"
 			data-opacityunfocus=".5"
 			data-textcolor="FFF" data-textsize="2.8"
-			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
 			data-textfocuscolor="FFF"
 			data-textitalicslope=".2"
 			data-valign="center" data-halign="center"
@@ -658,7 +658,7 @@ C_Name,
 			data-bgempty="1"
 			data-opacityunfocus=".5"
 			data-textcolor="FFF" data-textsize="2.8"
-			data-textfont="{{{FontManager::C_GameFontBlack}}}"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
 			data-textfocuscolor="FFF"
 			data-textitalicslope=".2"
 			data-valign="center" data-halign="center"

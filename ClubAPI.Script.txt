@@ -1,7 +1,7 @@
 /**
  *	API for Clubs
  */
-#Const Version		"2021-08-27"
+#Const Version		"2021-09-22"
 #Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/API/ClubAPI.Script.txt"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -420,6 +420,7 @@
 	Integer id;
 	Text mediaUrl;
 	Integer clubId;
+	Text clubName;
 	Text name;
 	Integer creationTimestamp;
 }
@@ -2056,9 +2057,15 @@ ComponentClubAPI_K_ResponseFromGetBucketActivities GetResponseFromGetAllBucketAc
 	foreach (HttpBucketActivity in HttpResponseFromGetAllBucketActivites.clubBucketList) {
 		declare ClubStruct::LibStructuresClub_K_BucketItem[] BucketItemList;
 		foreach (HttpBucketItem in HttpBucketActivity.bucketItemList) {
+			declare Text[] MediaUrls;
+			foreach (Media in HttpBucketItem.mediaUrls) {
+				MediaUrls.add(Media);
+			}
 			BucketItemList.add(ClubStruct::LibStructuresClub_K_BucketItem {
 				ItemId = HttpBucketItem.itemId,
-				Position = HttpBucketItem.position
+				Position = HttpBucketItem.position,
+				Description = HttpBucketItem.description,
+				MediaUrls = MediaUrls
 			});
 		}
 
@@ -2066,10 +2073,12 @@ ComponentClubAPI_K_ResponseFromGetBucketActivities GetResponseFromGetAllBucketAc
 			Id = HttpBucketActivity.id,
 			Type = HttpBucketActivity.type,
 			Name = HttpBucketActivity.name,
+			ClubName = HttpBucketActivity.clubName,
 			MediaUrl = HttpBucketActivity.mediaUrl,
 			ClubId = HttpBucketActivity.clubId,
 			CreationTimestamp = HttpBucketActivity.creationTimestamp,
 			BucketItemList = BucketItemList,
+			BucketItemCount = HttpBucketActivity.bucketItemCount,
 			PopularityLevel = HttpBucketActivity.popularityLevel,
 			PopularityValue = HttpBucketActivity.popularityValue
 		});
@@ -2551,6 +2560,7 @@ Text {{{P}}}GetResponseFromGetClubRoomPassword({{{Http::P}}}K_Request _Request) 
 		Id = HttpBucketActivity.id,
 		Type = HttpBucketActivity.type,
 		Name = HttpBucketActivity.name,
+		ClubName = HttpBucketActivity.clubName,
 		MediaUrl = HttpBucketActivity.mediaUrl,
 		ClubId = HttpBucketActivity.clubId,
 		CreationTimestamp = HttpBucketActivity.creationTimestamp,
